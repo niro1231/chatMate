@@ -7,11 +7,13 @@ import 'screen/qr_generate_screen.dart';
 import 'screen/qr_scan_screen.dart';
 import 'screen/profile.dart';
 import 'screen/setting.dart';
-import 'screen/account.dart';
+
 import 'screen/contact_profile_screen.dart';
 import 'screen/change_number.dart';
 import 'screen/wallpaper.dart';
 import 'screen/help.dart';
+import 'screen/plus.dart';
+import 'screen/Accdele.dart';
 void main() {
   runApp(ChatQRApp());
 }
@@ -39,10 +41,12 @@ class ChatQRApp extends StatelessWidget {
         '/qr-generate': (_) => QRGenerateScreen(),
         '/qr-scan': (_) => QRScanScreen(),
         '/settings': (_) => SettingsScreen(),
-        '/account': (_) => AccountScreen(),
+        
         '/change-number': (_) => ChangeNumberScreen(),
         '/wallpaper': (_) => ChatWallpaperScreen(),
         '/help': (_) => HelpScreen(),
+        '/plus': (_) => ContactsScreen(),
+        '/accdele': (_) => DeleteAccountScreen(),
         '/contact-profile': (context) {
           final contact =
               ModalRoute.of(context)!.settings.arguments

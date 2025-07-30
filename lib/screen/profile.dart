@@ -28,13 +28,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             hintText: "Enter $fieldName",
             hintStyle: const TextStyle(color: Colors.grey),
             enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF00A884)),
+              borderSide: BorderSide(color: Color(0xFFEA911D)),
             ),
             focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF00A884), width: 2),
+              borderSide: BorderSide(color: Color(0xFFEA911D), width: 2),
             ),
           ),
-          cursorColor: const Color(0xFF00A884),
+          cursorColor: const Color(0xFFEA911D),
         ),
         actions: [
           TextButton(
@@ -46,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onSave(controller.text.trim());
               Navigator.pop(context);
             },
-            child: const Text("Save", style: TextStyle(color: Color(0xFF00A884))),
+            child: const Text("Save", style: TextStyle(color: Color(0xFFEA911D))),
           ),
         ],
       ),
@@ -55,7 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildEditableTile(String label, String value, IconData icon, Function() onTap) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00A884)),
+      leading: Icon(icon, color: const Color(0xFFEA911D)),
       title: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
       subtitle: Text(value, style: const TextStyle(color: Colors.white, fontSize: 16)),
       trailing: const Icon(Icons.edit, color: Colors.grey),
@@ -65,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildPhoneTile(String label, String value, IconData icon, Function() onTap) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF00A884)),
+      leading: Icon(icon, color: const Color(0xFFEA911D)),
       title: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
       subtitle: Text(value, style: const TextStyle(color: Colors.white, fontSize: 16)),
       onTap: onTap,
@@ -123,7 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF00A884),
+                      color: Color(0xFFEA911D),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.camera_alt, color: Colors.white, size: 18),

@@ -44,7 +44,7 @@ class _QRGenerateScreenState extends State<QRGenerateScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
+                        color: Colors.black.withOpacity(0.3),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -74,40 +74,6 @@ class _QRGenerateScreenState extends State<QRGenerateScreen> {
                   "Others can scan this QR code\nto start chatting with you",
                   style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
                   textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-
-                // Share Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Implement share functionality
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('QR Code shared successfully!'),
-                          backgroundColor: Color(0xFFEA911D),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEA911D),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: const Icon(Icons.share, color: Colors.white),
-                    label: const Text(
-                      'Share QR Code',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),
