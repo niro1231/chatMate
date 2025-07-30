@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'chat_screen.dart'; // 👈 Add this import for navigation
 
 class ContactProfileScreen extends StatefulWidget {
   final Map<String, dynamic> contact;
@@ -22,7 +23,6 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // AppBar Row
             Row(
               children: [
                 IconButton(
@@ -32,8 +32,6 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
               ],
             ),
             const SizedBox(height: 12),
-
-            // Profile Picture & Name
             Center(
               child: Column(
                 children: [
@@ -42,7 +40,7 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                     backgroundColor: Colors.grey.shade700,
                     child: Icon(contact['avatar'], size: 60, color: Colors.white),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
                     contact['name'],
                     style: const TextStyle(
@@ -51,7 +49,7 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
@@ -63,13 +61,52 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                       style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatScreen(chat: contact),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.message, color: Colors.white),
+                          tooltip: "Send Message",
+                          iconSize: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            // Add contact logic here
+                          },
+                          icon: const Icon(Icons.person_add, color: Colors.white),
+                          tooltip: "Add Contact",
+                          iconSize: 28,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // About Section
             _buildSectionTitle('About'),
             _buildCard(
               child: Text(
@@ -77,51 +114,38 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                 style: TextStyle(color: Colors.grey.shade300, fontSize: 15),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Media Section (Updated like WhatsApp)
             _buildSectionTitle('Media, Links, and Docs'),
             _buildCard(
               child: InkWell(
                 onTap: () {
-                  // Navigate to full media screen
+                  // Media navigation
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Media Thumbnails
                     Row(
                       children: List.generate(3, (index) {
                         return Container(
-                          margin: EdgeInsets.only(right: 8),
+                          margin: const EdgeInsets.only(right: 8),
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
                             image: const DecorationImage(
-                              image: AssetImage('assets/media_placeholder.png'), // Replace with actual image
+                              image: AssetImage('assets/media_placeholder.png'),
                               fit: BoxFit.cover,
                             ),
                           ),
                         );
                       }),
                     ),
-                    const Row(
-                      children: [
-                        
-                        SizedBox(width: 4),
-                        Icon(Icons.chevron_right, color: Colors.white),
-                      ],
-                    ),
+                    const Icon(Icons.chevron_right, color: Colors.white),
                   ],
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Notification Settings
             _buildSectionTitle('Notification Settings'),
             _buildCard(
               child: SwitchListTile(
@@ -135,15 +159,12 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                 },
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Report & Block Buttons
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                   
+                    icon: const Icon(Icons.report, color: Colors.white),
                     label: const Text('Report', style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF424242),
@@ -156,7 +177,7 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                
+                    icon: const Icon(Icons.block, color: Colors.white),
                     label: const Text('Block', style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 209, 58, 56),

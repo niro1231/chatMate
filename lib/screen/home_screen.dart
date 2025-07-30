@@ -153,6 +153,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
           actions: [
+
+            IconButton(
+              icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+              onPressed: () {
+                Navigator.pushNamed(context, '/qr-scan'); // Navigate to QR scan page
+              },
+            ),
+
             IconButton(
               onPressed: () {
                 setState(() {
@@ -244,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
         body: _buildChatsView(),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            Navigator.pushNamed(context, '/qr-system');
+            Navigator.pushNamed(context, '/plus');
           },
           backgroundColor: const Color(0xFFEA911D),
           child: const Icon(Icons.add, color: Colors.white, size: 28),

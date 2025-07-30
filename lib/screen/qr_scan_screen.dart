@@ -48,7 +48,7 @@ class _QRScanScreenState extends State<QRScanScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
+                        color: Colors.black.withOpacity(0.4),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
                       ),
@@ -63,7 +63,7 @@ class _QRScanScreenState extends State<QRScanScreen> {
                           height: 200,
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: Colors.white.withOpacity(0.3),
                               width: 2,
                             ),
                             borderRadius: BorderRadius.circular(16),
@@ -138,105 +138,11 @@ class _QRScanScreenState extends State<QRScanScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
-
-                // Manual entry option
-                TextButton.icon(
-                  onPressed: () {
-                    // Show manual entry dialog
-                    _showManualEntryDialog();
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(
-                        color: Color(0xFFEA911D),
-                        width: 1,
-                      ),
-                    ),
-                  ),
-                  icon: const Icon(Icons.keyboard, color: Color(0xFFEA911D)),
-                  label: const Text(
-                    'Enter Code Manually',
-                    style: TextStyle(
-                      color: Color(0xFFEA911D),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  void _showManualEntryDialog() {
-    final TextEditingController codeController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey.shade800,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Enter Code',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: TextField(
-            controller: codeController,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Enter QR code manually',
-              hintStyle: TextStyle(color: Colors.grey.shade400),
-              filled: true,
-              fillColor: Colors.grey.shade700,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                // Process the manually entered code
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Code processed successfully!'),
-                    backgroundColor: Color(0xFFEA911D),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEA911D),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Connect',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
