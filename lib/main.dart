@@ -7,6 +7,9 @@ import 'screen/qr_generate_screen.dart';
 import 'screen/qr_scan_screen.dart';
 import 'screen/profile.dart';
 import 'screen/setting.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
 
 import 'screen/contact_profile_screen.dart';
 import 'screen/change_number.dart';
@@ -14,7 +17,9 @@ import 'screen/wallpaper.dart';
 import 'screen/help.dart';
 import 'screen/plus.dart';
 import 'screen/Accdele.dart';
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(ChatQRApp());
 }
 
@@ -27,13 +32,14 @@ class ChatQRApp extends StatelessWidget {
       title: 'ChatQR',
       theme: ThemeData(primarySwatch: Colors.indigo),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      initialRoute: FirebaseAuth.instance.currentUser == null ? '/' : '/home',
       routes: {
         '/': (_) => Dashboard(),
         '/otp-verification': (context) {
-          final phoneNumber =
-              ModalRoute.of(context)!.settings.arguments as String;
-          return OTPVerificationScreen(phoneNumber: phoneNumber);
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return OTPVerificationScreen(
+            email: args['email'],
+          );
         },
         '/home': (_) => HomeScreen(),
         '/profile': (_) => ProfileScreen(),

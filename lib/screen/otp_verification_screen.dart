@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../services/auth_service.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
-  final String phoneNumber;
+  final String email;
 
-  const OTPVerificationScreen({Key? key, required this.phoneNumber})
-    : super(key: key);
+  const OTPVerificationScreen({
+    Key? key,
+    required this.email,
+  }) : super(key: key);
 
   @override
   State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();
 }
 
 class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
+  final AuthService _authService = AuthService();
   final List<TextEditingController> _otpControllers = List.generate(
     6,
     (index) => TextEditingController(),
@@ -39,6 +43,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   }
 
   void _verifyOTP() async {
+    String otpCode = _getOTPCode();
     if (!_isOTPComplete()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -50,23 +55,22 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulate API call delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    String otpCode = _getOTPCode();
-
-    // Simple validation - in real app, this would be validated against server
-    if (otpCode == "123456") {
+    try {
       setState(() {
-        _isLoading = false;
+        _isLoading = true;
       });
-      // Navigate to home screen
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
+
+      bool isValid = await _authService.verifyOTP(
+        email: widget.email,
+        otp: otpCode,
+      );
+
+      if (isValid) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        throw Exception('Invalid OTP');
+      }
+    } catch (e) {
       setState(() {
         _isLoading = false;
       });
@@ -77,11 +81,31 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      // Clear OTP fields
       for (var controller in _otpControllers) {
         controller.clear();
       }
       _focusNodes[0].requestFocus();
+    }
+  }
+
+  void _resendOTP() async {
+    try {
+      await _authService.sendOTPEmail(email: widget.email);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('OTP sent successfully'),
+          backgroundColor: Colors.deepPurple,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to resend OTP: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -106,7 +130,6 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // OTP Icon
                     Container(
                       height: 120,
                       width: 120,
@@ -119,7 +142,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
+                            color: Colors.black.withOpacity(0.4),
                             blurRadius: 12,
                             offset: const Offset(0, 6),
                           ),
@@ -127,7 +150,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                       ),
                       child: const Center(
                         child: Icon(
-                          Icons.sms_rounded,
+                          Icons.email_rounded,
                           size: 50,
                           color: Colors.white,
                         ),
@@ -136,7 +159,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                     const SizedBox(height: 32),
 
                     const Text(
-                      "Verify Your Phone",
+                      "Verify Your Email",
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -147,7 +170,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                     const SizedBox(height: 12),
 
                     Text(
-                      "We've sent a 6-digit code to\n+94 ${widget.phoneNumber}",
+                      "We've sent a 6-digit code to\n${widget.email}",
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey.shade400,
@@ -156,7 +179,6 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    // OTP Input Fields
                     Card(
                       color: Colors.grey.shade50,
                       shape: RoundedRectangleBorder(
@@ -199,8 +221,8 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide(
-                                          color: const Color.fromARGB(
+                                        borderSide: const BorderSide(
+                                          color: Color.fromARGB(
                                             255,
                                             13,
                                             13,
@@ -219,7 +241,6 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                       } else if (value.isEmpty && index > 0) {
                                         _focusNodes[index - 1].requestFocus();
                                       }
-                                      // Trigger rebuild to update button state
                                       setState(() {});
                                     },
                                   ),
@@ -270,7 +291,6 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                 ),
               ),
 
-              // Resend OTP Section
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child: Column(
@@ -285,16 +305,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                     const SizedBox(height: 8),
 
                     TextButton(
-                      onPressed: () {
-                        // Resend OTP functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('OTP sent successfully'),
-                            backgroundColor: Colors.deepPurple,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
+                      onPressed: _resendOTP,
                       child: const Text(
                         "Resend OTP",
                         style: TextStyle(

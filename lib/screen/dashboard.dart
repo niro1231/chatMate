@@ -1,30 +1,42 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({Key? key}) : super(key: key);
+  const Dashboard({super.key});
 
   @override
   State<Dashboard> createState() => _DashboardState();
 }
 
 class _DashboardState extends State<Dashboard> {
-  final TextEditingController _phoneController = TextEditingController();
+  final AuthService _authService = AuthService();
+  final TextEditingController _emailController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  void _submitPhoneNumber() {
+  void _submitEmail() async {
     if (_formKey.currentState!.validate()) {
-      String phoneNumber = _phoneController.text.trim();
-      print("Phone number entered: $phoneNumber");
+      String email = _emailController.text.trim();
 
-      // Navigate to OTP verification screen
-      Navigator.pushNamed(context, '/otp-verification', arguments: phoneNumber);
+      try {
+        await _authService.sendOTPEmail(email: email);
+        if (!mounted) return;
+        Navigator.pushNamed(
+          context,
+          '/otp-verification',
+          arguments: {'email': email},
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade900, // Dark ash background
+      backgroundColor: Colors.grey.shade900,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -32,47 +44,16 @@ class _DashboardState extends State<Dashboard> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Modern Logo Circle with gradient
-                Container(
-                  height: 160,
-                  width: 160,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF4A4A4A), Color(0xFF2C2C2C)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.forum_rounded,
-                      size: 70,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
+                const Icon(Icons.email_rounded, size: 100, color: Colors.white),
                 const SizedBox(height: 24),
-
                 const Text(
                   "Welcome to ChatMate 👋",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "We only need your phone number to get started",
+                  "Enter your email to receive a verification code",
                   style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
                   textAlign: TextAlign.center,
                 ),
@@ -80,69 +61,45 @@ class _DashboardState extends State<Dashboard> {
 
                 Card(
                   color: Colors.grey.shade50,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                   elevation: 10,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 32,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                     child: Form(
                       key: _formKey,
                       child: Column(
                         children: [
                           TextFormField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            style: const TextStyle(
-                              color: Colors.black87,
-                              fontSize: 16,
-                            ),
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            style: const TextStyle(color: Colors.black87, fontSize: 16),
                             decoration: InputDecoration(
-                              labelText: 'Phone Number',
-                              labelStyle: TextStyle(
-                                color: const Color.fromARGB(255, 16, 16, 16),
-                                fontSize: 14,
-                              ),
-                              prefixText: '+94 ',
-                              prefixStyle: const TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              hintText: 'Enter 9-digit number',
-                              hintStyle: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 14,
-                              ),
+                              labelText: 'Email Address',
+                              hintText: 'you@example.com',
                               filled: true,
                               fillColor: Colors.grey.shade100,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide.none,
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: const Color(0xFFEA911D),
-                                  width: 2,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFEA911D), width: 2)),
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Please enter your phone number';
-                              } else if (!RegExp(
-                                r'^[0-9]{9,10}$',
-                              ).hasMatch(value)) {
-                                return 'Enter a valid phone number';
+                                return 'Please enter your email';
                               }
+                              final emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+                              if (!emailRegex.hasMatch(value)) {
+                                return 'Enter a valid email';
+                              }
+
+                              // Extract domain from email
+                              final domain = value.split('@').last.toLowerCase();
+
+                              // Allowed domains list
+                              const allowedDomains = ['gmail.com'];
+
+                              if (!allowedDomains.contains(domain)) {
+                                return 'Email valid email';
+                              }
+
                               return null;
                             },
                           ),
@@ -150,23 +107,13 @@ class _DashboardState extends State<Dashboard> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _submitPhoneNumber,
+                              onPressed: _submitEmail,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFEA911D),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               ),
-                              child: const Text(
-                                'Get OTP',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                ),
-                              ),
+                              child: const Text('Send OTP', style: TextStyle(fontSize: 18, color: Colors.white)),
                             ),
                           ),
                         ],
