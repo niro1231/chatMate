@@ -1,3 +1,4 @@
+import 'package:chatme/database/repository.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
@@ -18,13 +19,22 @@ class _DashboardState extends State<Dashboard> {
       String email = _emailController.text.trim();
 
       try {
-        await _authService.sendOTPEmail(email: email);
-        if (!mounted) return;
-        Navigator.pushNamed(
-          context,
-          '/otp-verification',
-          arguments: {'email': email},
-        );
+        final repo = Repository();
+        final existingUser = await repo.getUserByEmail(email);
+        if (existingUser != null) {
+          // If user already exists, skip OTP and go to home
+          if (!mounted) return;
+          // await repo.setLoggedIn(email);
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          await _authService.sendOTPEmail(email: email);
+          if (!mounted) return;
+          Navigator.pushNamed(
+            context,
+            '/otp-verification',
+            arguments: {'email': email},
+          );
+        }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
