@@ -1,13 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
+import 'dart:convert'; // for jsonEncode
 
 class QRGenerateScreen extends StatefulWidget {
-  const QRGenerateScreen({Key? key}) : super(key: key);
+  final String email; // user's email
+  const QRGenerateScreen({Key? key, required this.email}) : super(key: key);
 
   @override
   State<QRGenerateScreen> createState() => _QRGenerateScreenState();
 }
 
 class _QRGenerateScreenState extends State<QRGenerateScreen> {
+  late String uniqueId;
+  late String qrData;
+
+  @override
+  void initState() {
+    super.initState();
+    uniqueId = const Uuid().v4();
+
+    qrData = jsonEncode({
+      'id' : uniqueId,
+      'email' : widget.email,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,8 +55,7 @@ class _QRGenerateScreenState extends State<QRGenerateScreen> {
               children: [
                 // QR Code Placeholder
                 Container(
-                  width: 200,
-                  height: 200,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -50,13 +67,9 @@ class _QRGenerateScreenState extends State<QRGenerateScreen> {
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.qr_code_2_rounded,
-                      size: 120,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  child: PrettyQrView.data(
+                    data: qrData!
+                  )
                 ),
                 const SizedBox(height: 32),
 

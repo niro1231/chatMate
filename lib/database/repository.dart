@@ -43,9 +43,12 @@ class Repository {
     );
 
     if (result.isNotEmpty) {
-      return User.fromMap(result.first);
+      final user = User.fromMap(result.first);
+      print('✅ User found: ID=${user.id}, Email=${user.email}');
+      return user;
     }
-
+    
+    print('⚠️ No user found with email: $email');
     return null;
   }
 

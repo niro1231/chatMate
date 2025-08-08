@@ -36,15 +36,27 @@ class ChatQRApp extends StatelessWidget {
       routes: {
         '/': (_) => Dashboard(),
         '/otp-verification': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final args = ModalRoute.of(context)!.settings.arguments;
+          if (args == null || args is! Map<String, dynamic>){
+            // handle missing or wrong arguments, e.g. show error screen or provide default values
+            return OTPVerificationScreen(email: '');
+          }
           return OTPVerificationScreen(
-            email: args['email'],
+            email: (args as Map<String, dynamic>)['email'],
           );
         },
         '/home': (_) => HomeScreen(),
         '/profile': (_) => ProfileScreen(),
         '/qr-system': (_) => QRSystemScreen(),
-        '/qr-generate': (_) => QRGenerateScreen(),
+        '/qr-generate': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args == null || args is! Map<String, dynamic>) {
+            return QRGenerateScreen(email: '');
+          }
+          return QRGenerateScreen(
+            email: (args as Map<String, dynamic>)['email'],
+          );
+        },
         '/qr-scan': (_) => QRScanScreen(),
         '/settings': (_) => SettingsScreen(),
         
@@ -54,10 +66,12 @@ class ChatQRApp extends StatelessWidget {
         '/plus': (_) => ContactsScreen(),
         '/accdele': (_) => DeleteAccountScreen(),
         '/contact-profile': (context) {
-          final contact =
-              ModalRoute.of(context)!.settings.arguments
-                  as Map<String, dynamic>;
-          return ContactProfileScreen(contact: contact);
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args == null || args is! Map<String, dynamic>) {
+            // handle error or provide default empty map
+            return ContactProfileScreen(contact: {});
+          }
+          return ContactProfileScreen(contact: args as Map<String, dynamic>);
         },
       },
     );

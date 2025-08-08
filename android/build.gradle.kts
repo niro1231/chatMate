@@ -13,13 +13,15 @@ val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build"
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {
+    // Set new build dir
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
-    
-    // Ensure consistent JVM target across all subprojects
+
+    // Ensure consistent Java compatibility
     afterEvaluate {
         if (project.plugins.hasPlugin("com.android.application") ||
             project.plugins.hasPlugin("com.android.library")) {
+
             configure<com.android.build.gradle.BaseExtension> {
                 compileOptions {
                     sourceCompatibility = JavaVersion.VERSION_17
@@ -27,16 +29,15 @@ subprojects {
                 }
             }
         }
-        if (project.plugins.hasPlugin("kotlin-android")) {
-            val kotlinExtension = project.extensions.findByName("kotlinOptions")
-            if (kotlinExtension != null) {
-                (kotlinExtension as org.jetbrains.kotlin.gradle.dsl.KotlinJvmOptions).jvmTarget = "17"
-            }
+    }
+
+    // Set Kotlin JVM target using modern DSL
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
-}
 
-subprojects {
     project.evaluationDependsOn(":app")
 }
 

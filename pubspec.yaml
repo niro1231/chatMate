@@ -41,6 +41,9 @@ dependencies:
   http: ^0.13.6
   sqflite: ^2.3.3
   path_provider: ^2.1.2
+  uuid: ^4.0.0              # for unique IDs
+  mobile_scanner: ^6.0.2  
+  pretty_qr_code: ^3.3.0
 
 dev_dependencies:
   flutter_test:
