@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
+import 'package:chatme/modal/user.dart';
+import 'package:chatme/database/repository.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final String email;
@@ -66,7 +68,21 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       );
 
       if (isValid) {
-        Navigator.pushReplacementNamed(context, '/home');
+        final now = DateTime.now().toIso8601String();
+        final user = User(
+          email: widget.email,
+          createdAt: now,
+          updatedAt: now,
+        );
+
+        final repo = Repository();
+        await repo.insertUser(user);
+        // await repo.setLoggedIn(widget.email);
+
+        // Continue to next screen
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       } else {
         throw Exception('Invalid OTP');
       }
