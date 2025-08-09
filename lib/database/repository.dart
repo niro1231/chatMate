@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:chatme/database/db-helper.dart';
 import 'package:chatme/modal/user.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 class Repository {
@@ -52,9 +52,18 @@ class Repository {
     return null;
   }
 
-  // Future<void> setLoggedIn(String email) async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.setBool('isLoggedIn', true);
-  //   await prefs.setString('loggedInEmail', email);
-  // }
+  Future<void> setLoggedIn(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('loggedInEmail', email);
+  }
+  
+  Future<String?> getLoggedInEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('loggedInEmail');
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('loggedInEmail');
+  }
 }

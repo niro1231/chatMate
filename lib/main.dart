@@ -1,3 +1,4 @@
+import 'package:chatme/database/repository.dart';
 import 'package:flutter/material.dart';
 import 'screen/dashboard.dart';
 import 'screen/otp_verification_screen.dart';
@@ -20,11 +21,15 @@ import 'screen/Accdele.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(ChatQRApp());
+
+  final repo = Repository();
+  final loggedInEmail = await repo.getLoggedInEmail();
+  runApp(ChatQRApp(initialRoute: loggedInEmail == null ? '/' : '/home'));
 }
 
 class ChatQRApp extends StatelessWidget {
-  const ChatQRApp({super.key});
+  final String initialRoute;
+  const ChatQRApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +37,7 @@ class ChatQRApp extends StatelessWidget {
       title: 'ChatQR',
       theme: ThemeData(primarySwatch: Colors.indigo),
       debugShowCheckedModeBanner: false,
-      initialRoute: FirebaseAuth.instance.currentUser == null ? '/' : '/home',
+      initialRoute: initialRoute,
       routes: {
         '/': (_) => Dashboard(),
         '/otp-verification': (context) {

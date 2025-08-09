@@ -23,8 +23,8 @@ class _DashboardState extends State<Dashboard> {
         final existingUser = await repo.getUserByEmail(email);
         if (existingUser != null) {
           // If user already exists, skip OTP and go to home
+          await repo.setLoggedIn(email);
           if (!mounted) return;
-          // await repo.setLoggedIn(email);
           Navigator.pushReplacementNamed(context, '/home');
         } else {
           await _authService.sendOTPEmail(email: email);

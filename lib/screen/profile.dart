@@ -1,3 +1,4 @@
+import 'package:chatme/database/repository.dart';
 import 'package:flutter/material.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -85,8 +86,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+              final repo = Repository();
+              await repo.logout();
               Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
             },
             child: const Text("Logout", style: TextStyle(color: Colors.red)),

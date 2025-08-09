@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'dart:convert';
+import 'chat_screen.dart';
 
 class QRScanScreen extends StatefulWidget {
-  const QRScanScreen({Key? key}) : super(key: key);
+  QRScanScreen({super.key});
+  
 
   @override
   State<QRScanScreen> createState() => _QRScanScreenState();
 }
 
 class _QRScanScreenState extends State<QRScanScreen> {
+  bool _isProcessing = false; // to avoid multiple scans firing
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,12 +73,40 @@ class _QRScanScreenState extends State<QRScanScreen> {
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.qr_code_scanner_rounded,
-                              size: 80,
-                              color: Colors.white,
+                          child: MobileScanner(
+                            controller: MobileScannerController(
+                              detectionSpeed: DetectionSpeed.noDuplicates
                             ),
+                            onDetect: (capture) {
+                              if (_isProcessing) return;
+                              final barcodes = capture.barcodes;
+                              if (barcodes.isEmpty) return;
+
+                              final raw = barcodes.first.rawValue;
+                              if (raw == null) return;
+
+                              try {
+                                final Map<String, dynamic> data = jsonDecode(raw);
+                                if(data.containsKey('email') && data['email'] is String) {
+                                  _isProcessing = true;
+
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ChatScreen(chat: data),
+                                  ),
+                                ).then((_) {
+                                  // Reset processing flag when returning to scanner
+                                  _isProcessing = false;
+                                });
+                                } else {
+                                    // Handle invalid QR format here if you want
+                                }
+                              }  catch (e) {
+                                // Handle JSON parse error if needed
+                                _showInvalidQRCodeDialog();
+                              }                              
+                            },
                           ),
                         ),
                       ),
@@ -145,4 +178,23 @@ class _QRScanScreenState extends State<QRScanScreen> {
       ),
     );
   }
+
+  void _showInvalidQRCodeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Invalid QR Code'),
+          content: const Text('The scanned QR code is not valid or not supported.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }
