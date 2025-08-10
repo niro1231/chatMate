@@ -68,20 +68,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       );
 
       if (isValid) {
-        final now = DateTime.now().toIso8601String();
-        final user = User(
-          email: widget.email,
-          createdAt: now,
-          updatedAt: now,
-        );
-
-        final repo = Repository();
-        await repo.insertUser(user);
-        // await repo.setLoggedIn(widget.email);
-
         // Continue to next screen
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
+          Navigator.pushReplacementNamed(context, '/name', arguments: {'email': widget.email},);
         }
       } else {
         throw Exception('Invalid OTP');

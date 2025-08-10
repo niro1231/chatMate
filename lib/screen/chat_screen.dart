@@ -117,38 +117,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _loadMessages() {
-    messages = [
-      {
-        'text': 'Hey, how are you doing?',
-        'isMe': false,
-        'time': '2:25 PM',
-        'isRead': true,
-      },
-      {
-        'text': 'I\'m doing great! Thanks for asking 😊',
-        'isMe': true,
-        'time': '2:26 PM',
-        'isRead': true,
-      },
-      {
-        'text': 'That\'s wonderful to hear!',
-        'isMe': false,
-        'time': '2:27 PM',
-        'isRead': true,
-      },
-      {
-        'text': 'How about you? How has your day been?',
-        'isMe': true,
-        'time': '2:28 PM',
-        'isRead': true,
-      },
-      {
-        'text': widget.chat['lastMessage'],
-        'isMe': false,
-        'time': widget.chat['time'],
-        'isRead': false,
-      },
-    ];
+    messages = [];
     _filteredMessages = List.from(messages);
   }
 
@@ -284,6 +253,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildChatTitle() {
+    final name = widget.chat['name'] as String? ?? widget.chat['email'] ?? 'Unknown User';
+    // Use a default icon since the QR code data doesn't contain an avatar.
+    final avatarIcon = widget.chat['avatar'] ?? Icons.person;
     return GestureDetector(
       onTap: () async {
         final result = await Navigator.pushNamed(
@@ -304,7 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
           CircleAvatar(
             radius: 18,
             backgroundColor: const Color(0xFF757575),
-            child: Icon(widget.chat['avatar'], color: Colors.white, size: 20),
+            child: Icon(avatarIcon, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -312,7 +284,7 @@ class _ChatScreenState extends State<ChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.chat['name'],
+                  name,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,

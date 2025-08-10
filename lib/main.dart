@@ -1,4 +1,5 @@
 import 'package:chatme/database/repository.dart';
+import 'package:chatme/screen/name.dart';
 import 'package:flutter/material.dart';
 import 'screen/dashboard.dart';
 import 'screen/otp_verification_screen.dart';
@@ -51,15 +52,27 @@ class ChatQRApp extends StatelessWidget {
           );
         },
         '/home': (_) => HomeScreen(),
+        '/name': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments;
+          if (args == null || args is! Map<String, dynamic>){
+            // handle missing or wrong arguments, e.g. show error screen or provide default values
+            return NameScreen(email: '');
+          }
+          return NameScreen(
+            email: (args as Map<String, dynamic>)['email'],
+          );
+        },
         '/profile': (_) => ProfileScreen(),
         '/qr-system': (_) => QRSystemScreen(),
         '/qr-generate': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
-          if (args == null || args is! Map<String, dynamic>) {
-            return QRGenerateScreen(email: '');
+          if (args == null || args is! Map<String, dynamic> || !args.containsKey('name')) {
+            // Return a screen with an error or default values if arguments are missing
+            return QRGenerateScreen(email: '', name: 'Guest');
           }
           return QRGenerateScreen(
             email: (args as Map<String, dynamic>)['email'],
+            name: (args as Map<String, dynamic>)['name'], // Pass the name
           );
         },
         '/qr-scan': (_) => QRScanScreen(),

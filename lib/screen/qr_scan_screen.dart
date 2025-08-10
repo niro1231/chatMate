@@ -6,7 +6,6 @@ import 'chat_screen.dart';
 class QRScanScreen extends StatefulWidget {
   QRScanScreen({super.key});
   
-
   @override
   State<QRScanScreen> createState() => _QRScanScreenState();
 }

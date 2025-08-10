@@ -1,12 +1,14 @@
 class User {
   int? id;
   String email;
+  String name;
   String createdAt;
   String updatedAt;
 
   User({
     this.id,
     required this.email,
+    required this.name,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -15,6 +17,7 @@ class User {
     final map = <String, dynamic>{};
     if (id != null) map['id'] = id;
     map['email'] = email;
+    map['name'] = name;
     map['createdAt'] = createdAt;
     map['updatedAt'] = updatedAt;
     return map;
@@ -24,6 +27,7 @@ class User {
     return User(
       id: map['id'],
       email: map['email'],
+      name: map['name'],
       createdAt: map['createdAt'],
       updatedAt: map['updatedAt'],
     );

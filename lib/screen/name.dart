@@ -1,46 +1,51 @@
 import 'package:chatme/database/repository.dart';
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:chatme/modal/user.dart'; 
 
-class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+class NameScreen extends StatefulWidget {
+  final String email;
+  const NameScreen({super.key, required this.email});
 
   @override
-  State<Dashboard> createState() => _DashboardState();
+  State<NameScreen> createState() => _NameScreenState();
 }
 
-class _DashboardState extends State<Dashboard> {
-  final AuthService _authService = AuthService();
-  final TextEditingController _emailController = TextEditingController();
+class _NameScreenState extends State<NameScreen> {
+  final TextEditingController _nameController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  void _submitEmail() async {
+  void _submitName() async {
     if (_formKey.currentState!.validate()) {
-      String email = _emailController.text.trim();
+      String name = _nameController.text.trim();
 
       try {
+        final now = DateTime.now().toIso8601String();
+        final user = User(
+          email: widget.email,
+          name: name,
+          createdAt: now,
+          updatedAt: now,
+        );
+
         final repo = Repository();
-        final existingUser = await repo.getUserByEmail(email);
-        if (existingUser != null) {
-          // If user already exists, skip OTP and go to home
-          await repo.setLoggedIn(email);
-          if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/home');
-        } else {
-          await _authService.sendOTPEmail(email: email);
-          if (!mounted) return;
-          Navigator.pushNamed(
-            context,
-            '/otp-verification',
-            arguments: {'email': email},
-          );
-        }
+        await repo.insertUser(user); 
+
+        await repo.setLoggedIn(user.email);
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
         );
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 
   @override
@@ -54,16 +59,16 @@ class _DashboardState extends State<Dashboard> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.email_rounded, size: 100, color: Colors.white),
+                const Icon(Icons.person_rounded, size: 100, color: Colors.white),
                 const SizedBox(height: 24),
                 const Text(
-                  "Welcome to ChatMate 👋",
+                  "What's your name?",
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Enter your email to receive a verification code",
+                  "Enter a name for your profile",
                   style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
                   textAlign: TextAlign.center,
                 ),
@@ -80,12 +85,12 @@ class _DashboardState extends State<Dashboard> {
                       child: Column(
                         children: [
                           TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
+                            controller: _nameController,
+                            keyboardType: TextInputType.name,
                             style: const TextStyle(color: Colors.black87, fontSize: 16),
                             decoration: InputDecoration(
-                              labelText: 'Email Address',
-                              hintText: 'you@example.com',
+                              labelText: 'Your Name',
+                              hintText: 'John Doe',
                               filled: true,
                               fillColor: Colors.grey.shade100,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -93,23 +98,8 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Please enter your email';
+                                return 'Please enter your name';
                               }
-                              final emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
-                              if (!emailRegex.hasMatch(value)) {
-                                return 'Enter a valid email';
-                              }
-
-                              // Extract domain from email
-                              final domain = value.split('@').last.toLowerCase();
-
-                              // Allowed domains list
-                              const allowedDomains = ['gmail.com'];
-
-                              if (!allowedDomains.contains(domain)) {
-                                return 'Enter valid email';
-                              }
-
                               return null;
                             },
                           ),
@@ -117,13 +107,13 @@ class _DashboardState extends State<Dashboard> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _submitEmail,
+                              onPressed: _submitName,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFEA911D),
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               ),
-                              child: const Text('Send OTP', style: TextStyle(fontSize: 18, color: Colors.white)),
+                              child: const Text('Save Name', style: TextStyle(fontSize: 18, color: Colors.white)),
                             ),
                           ),
                         ],

@@ -4,8 +4,9 @@ import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'dart:convert'; // for jsonEncode
 
 class QRGenerateScreen extends StatefulWidget {
-  final String email; // user's email
-  const QRGenerateScreen({Key? key, required this.email}) : super(key: key);
+  final String email;
+  final String name; 
+  const QRGenerateScreen({Key? key, required this.email, required this.name}) : super(key: key);
 
   @override
   State<QRGenerateScreen> createState() => _QRGenerateScreenState();
@@ -23,6 +24,7 @@ class _QRGenerateScreenState extends State<QRGenerateScreen> {
     qrData = jsonEncode({
       'id' : uniqueId,
       'email' : widget.email,
+      'name' : widget.name,
     });
   }
 
