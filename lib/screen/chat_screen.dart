@@ -318,6 +318,12 @@ class _ChatScreenState extends State<ChatScreen> {
         icon: const Icon(Icons.search, color: Colors.white),
         onPressed: _toggleSearchMode,
       ),
+      IconButton(
+        icon: const Icon(Icons.person_add, color: Colors.white),
+        onPressed: () {
+          _showAddContactDialog();
+        },
+      ),
       PopupMenuButton<String>(
         icon: const Icon(Icons.more_vert, color: Colors.white),
         color: const Color(0xFF424242),
@@ -672,6 +678,56 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
               child: const Text('Clear chat'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddContactDialog() {
+    final name = widget.chat['name'] as String? ?? widget.chat['email'] ?? 'Unknown User';
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey.shade800,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Add Contact',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            'Do you want to add $name to your contacts?',
+            style: TextStyle(color: Colors.grey.shade300),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // Add contact logic here
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$name added to your contacts'),
+                    backgroundColor: const Color(0xFFEA911D),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEA911D),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Add Contact'),
             ),
           ],
         );
