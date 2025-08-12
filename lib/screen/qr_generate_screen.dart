@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'dart:convert'; // for jsonEncode
 import 'package:chatme/modal/user.dart';
-import 'package:chatme/database/repository.dart';
+import 'package:chatme/database/UserRepository.dart';
 
 class QRGenerateScreen extends StatefulWidget {
   final String email;
@@ -14,7 +14,7 @@ class QRGenerateScreen extends StatefulWidget {
 }
 
 class _QRGenerateScreenState extends State<QRGenerateScreen> {
-  late String qrData;
+  String qrData = '';
 
   @override
   void initState() {

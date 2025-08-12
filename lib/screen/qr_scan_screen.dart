@@ -3,7 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
 import 'chat_screen.dart';
 import 'package:chatme/modal/user.dart';
-import 'package:chatme/database/repository.dart';
+import 'package:chatme/database/UserRepository.dart';
 
 class QRScanScreen extends StatefulWidget {
   QRScanScreen({super.key});

@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import 'package:chatme/modal/user.dart';
-import 'package:chatme/database/repository.dart';
+import 'package:chatme/database/UserRepository.dart';
+import 'package:uuid/uuid.dart'; 
 
 class OTPVerificationScreen extends StatefulWidget {
   final String email;
 
   const OTPVerificationScreen({
-    Key? key,
+    super.key,
     required this.email,
-  }) : super(key: key);
+  }) ;
 
   @override
   State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();

@@ -1,4 +1,4 @@
-import 'package:chatme/database/repository.dart';
+import 'package:chatme/database/UserRepository.dart';
 import 'package:chatme/screen/name.dart';
 import 'package:flutter/material.dart';
 import 'screen/dashboard.dart';

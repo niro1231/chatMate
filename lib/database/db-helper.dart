@@ -34,7 +34,7 @@ class DatabaseConnection {
   Future<void> _createDatabase(Database db, int version) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT PRIMARY KEY,
         email TEXT NOT NULL UNIQUE,
         name TEXT NOT NULL,
         createdAt TEXT NOT NULL,
