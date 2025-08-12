@@ -44,7 +44,7 @@ class Repository {
 
     if (result.isNotEmpty) {
       final user = User.fromMap(result.first);
-      print('✅ User found: ID=${user.id}, Email=${user.email}');
+      print('✅ User found: ID=${user.uuid}, Email=${user.email}');
       return user;
     }
     
@@ -65,5 +65,13 @@ class Repository {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('loggedInEmail');
+  }
+
+  Future<User?> getLoggedInUser() async {
+    final email = await getLoggedInEmail();
+    if (email != null) {
+      return await getUserByEmail(email);
+    }
+    return null;
   }
 }

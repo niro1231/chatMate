@@ -1,6 +1,7 @@
 import 'package:chatme/database/repository.dart';
 import 'package:flutter/material.dart';
 import 'package:chatme/modal/user.dart'; 
+import 'package:uuid/uuid.dart';
 
 class NameScreen extends StatefulWidget {
   final String email;
@@ -17,10 +18,12 @@ class _NameScreenState extends State<NameScreen> {
   void _submitName() async {
     if (_formKey.currentState!.validate()) {
       String name = _nameController.text.trim();
+      String newUuid = const Uuid().v4();
 
       try {
         final now = DateTime.now().toIso8601String();
         final user = User(
+          uuid: newUuid,
           email: widget.email,
           name: name,
           createdAt: now,
