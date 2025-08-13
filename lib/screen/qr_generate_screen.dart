@@ -1,31 +1,45 @@
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'dart:convert'; // for jsonEncode
+import 'package:chatme/modal/user.dart';
+import 'package:chatme/database/UserRepository.dart';
 
 class QRGenerateScreen extends StatefulWidget {
   final String email;
   final String name; 
-  const QRGenerateScreen({Key? key, required this.email, required this.name}) : super(key: key);
+  const QRGenerateScreen({super.key, required this.email, required this.name});
 
   @override
   State<QRGenerateScreen> createState() => _QRGenerateScreenState();
 }
 
 class _QRGenerateScreenState extends State<QRGenerateScreen> {
-  late String uniqueId;
-  late String qrData;
+  String qrData = '';
 
   @override
   void initState() {
     super.initState();
-    uniqueId = const Uuid().v4();
+    _loadUserDataAndGenerateQR();
+  }
 
-    qrData = jsonEncode({
-      'id' : uniqueId,
-      'email' : widget.email,
-      'name' : widget.name,
-    });
+  void _loadUserDataAndGenerateQR() async {
+    final repo = Repository();
+    final User? user = await repo.getLoggedInUser(); // Assume this method exists in your repository
+
+    if (user != null) {
+      setState(() {
+        qrData = jsonEncode({
+          'uuid': user.uuid, 
+          'email': user.email,
+          'name': user.name,
+        });
+      });
+    } else {
+      // Handle the case where no user is logged in
+      setState(() {
+        qrData = jsonEncode({'error': 'No user logged in'});
+      });
+    }
   }
 
   @override

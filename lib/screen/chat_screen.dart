@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/foundation.dart' as foundation;
+import 'package:chatme/database/MessageRepository.dart';
+import 'package:chatme/modal/user.dart';
+import 'package:chatme/modal/message.dart';
+import 'dart:async';
 
 class ChatScreen extends StatefulWidget {
   final Map<String, dynamic> chat;
 
-  ChatScreen({Key? key, required this.chat}) : super(key: key);
+  const ChatScreen({super.key, required this.chat});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -15,39 +19,91 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final Repository _repo = Repository();
 
-  List<Map<String, dynamic>> messages = [];
-  List<Map<String, dynamic>> _filteredMessages = [];
+  late String _userUuid;
+  late String _contactUuid;
+
+  List<Message> _messages = [];
   bool _isSearchMode = false;
   int _currentSearchIndex = -1;
   List<int> _searchMatchIndices = [];
   bool _isBlocked = false;
   bool _showEmojiPicker = false;
+  Timer? _realtimeTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    _loadChatData();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _loadChatData() async {
+    final User? loggedInUser = await _repo.getLoggedInUser();
+    
+    if (loggedInUser != null) {
+      _userUuid = loggedInUser.uuid;
+      _contactUuid = widget.chat['uuid'] as String;
+      
+      // Ensure the messages table is created
+      await _repo.createMessageTable();
+      await _loadMessages();
+      _setupRealtimeListener();
+    } else {
+      // Handle the case where no user is logged in
+      if (mounted) {
+        // Pop back to a login screen or show an error
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User not logged in')),
+        );
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  Future<void> _loadMessages() async {
+    final fetchedMessages = await _repo.getMessagesForChat(_userUuid, _contactUuid);
+    if (mounted) {
+      setState(() {
+        _messages = fetchedMessages;
+      });
+      _scrollToBottom();
+    }
+  }
+
+  void _setupRealtimeListener() {
+    // This is a mock real-time listener using a Timer.
+    // In a real app, you would use a WebSocket or a service like Firebase Firestore
+    _realtimeTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      final mockMessage = Message(
+        senderUuid: _contactUuid,
+        receiverUuid: _userUuid,
+        text: "This is a simulated message from ${_contactUuid.substring(0, 8)}!",
+        createdAt: DateTime.now().toIso8601String(),
+        isRead: false,
+      );
+      await _repo.insertMessage(mockMessage);
+      if (mounted) {
+        setState(() {
+          _messages.add(mockMessage);
+        });
+        _scrollToBottom();
+      }
+    });
   }
 
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase().trim();
     setState(() {
       if (query.isEmpty) {
-        _filteredMessages = List.from(messages);
         _searchMatchIndices.clear();
         _currentSearchIndex = -1;
       } else {
-        _searchMatchIndices.clear();
-        _filteredMessages = [];
-        for (int i = 0; i < messages.length; i++) {
-          final message = messages[i];
-          if (message['text'].toString().toLowerCase().contains(query)) {
-            _searchMatchIndices.add(i);
-            _filteredMessages.add(message);
-          }
-        }
+        _searchMatchIndices = _messages
+            .where((message) => message.text.toLowerCase().contains(query))
+            .map((message) => _messages.indexOf(message))
+            .toList();
         if (_searchMatchIndices.isNotEmpty) {
           _currentSearchIndex = 0;
           _scrollToMessage(_searchMatchIndices[0]);
@@ -58,9 +114,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _scrollToMessage(int index) {
     if (_scrollController.hasClients) {
-      final position = index * 80.0;
       _scrollController.animateTo(
-        position,
+        index * 80.0, // This is an approximation
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -93,7 +148,6 @@ class _ChatScreenState extends State<ChatScreen> {
       _isSearchMode = !_isSearchMode;
       if (!_isSearchMode) {
         _searchController.clear();
-        _filteredMessages = List.from(messages);
         _searchMatchIndices.clear();
         _currentSearchIndex = -1;
       }
@@ -107,35 +161,35 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onEmojiSelected(String emoji) {
-    setState(() {
-      _messageController.text = _messageController.text + emoji;
-    });
-    // Move cursor to the end
+    _messageController.text += emoji;
     _messageController.selection = TextSelection.fromPosition(
       TextPosition(offset: _messageController.text.length),
     );
   }
 
-  void _loadMessages() {
-    messages = [];
-    _filteredMessages = List.from(messages);
-  }
-
-  void _sendMessage() {
+  void _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
 
-    setState(() {
-      messages.add({
-        'text': _messageController.text.trim(),
-        'isMe': true,
-        'time': _getCurrentTime(),
-        'isRead': false,
+    final newMessage = Message(
+      senderUuid: _userUuid,
+      receiverUuid: _contactUuid,
+      text: _messageController.text.trim(),
+      createdAt: DateTime.now().toIso8601String(),
+    );
+
+    await _repo.insertMessage(newMessage);
+
+    if (mounted) {
+      setState(() {
+        _messages.add(newMessage);
+        _showEmojiPicker = false;
       });
-      _showEmojiPicker = false; // Hide emoji picker when sending message
-    });
-
-    _messageController.clear();
-
+      _messageController.clear();
+      _scrollToBottom();
+    }
+  }
+  
+  void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -147,11 +201,9 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  String _getCurrentTime() {
-    final now = DateTime.now();
-    final hour = now.hour > 12
-        ? now.hour - 12
-        : (now.hour == 0 ? 12 : now.hour);
+  String _getCurrentTime(String dateTimeString) {
+    final now = DateTime.parse(dateTimeString);
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
     final minute = now.minute.toString().padLeft(2, '0');
     final period = now.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
@@ -162,6 +214,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
+    _realtimeTimer?.cancel();
     super.dispose();
   }
 
@@ -191,9 +244,9 @@ class _ChatScreenState extends State<ChatScreen> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: messages.length,
+              itemCount: _messages.length,
               itemBuilder: (context, index) {
-                final message = messages[index];
+                final message = _messages[index];
                 final isHighlighted =
                     _isSearchMode &&
                     _searchMatchIndices.contains(index) &&
@@ -254,7 +307,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildChatTitle() {
     final name = widget.chat['name'] as String? ?? widget.chat['email'] ?? 'Unknown User';
-    // Use a default icon since the QR code data doesn't contain an avatar.
     final avatarIcon = widget.chat['avatar'] ?? Icons.person;
     return GestureDetector(
       onTap: () async {
@@ -368,10 +420,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(
-    Map<String, dynamic> message, [
+    Message message, [
     bool isHighlighted = false,
   ]) {
-    final isMe = message['isMe'];
+    final isMe = message.senderUuid == _userUuid;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: isHighlighted
@@ -391,7 +443,7 @@ class _ChatScreenState extends State<ChatScreen> {
             CircleAvatar(
               radius: 16,
               backgroundColor: Colors.grey.shade600,
-              child: Icon(widget.chat['avatar'], color: Colors.white, size: 16),
+              child: const Icon(Icons.person, color: Colors.white, size: 16),
             ),
             const SizedBox(width: 8),
           ],
@@ -415,11 +467,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   _isSearchMode && _searchController.text.isNotEmpty
                       ? _buildHighlightedText(
-                          message['text'],
+                          message.text,
                           _searchController.text,
                         )
                       : Text(
-                          message['text'],
+                          message.text,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -430,7 +482,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        message['time'],
+                        _getCurrentTime(message.createdAt),
                         style: TextStyle(
                           color: isMe ? Colors.white70 : Colors.grey.shade400,
                           fontSize: 12,
@@ -439,8 +491,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       if (isMe) ...[
                         const SizedBox(width: 4),
                         Icon(
-                          message['isRead'] ? Icons.done_all : Icons.done,
-                          color: message['isRead']
+                          message.isRead ? Icons.done_all : Icons.done,
+                          color: message.isRead
                               ? Colors.blue
                               : Colors.white70,
                           size: 16,
@@ -658,18 +710,21 @@ class _ChatScreenState extends State<ChatScreen> {
               child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                setState(() {
-                  messages.clear();
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Chat cleared'),
-                    backgroundColor: Color(0xFFEA911D),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                await _repo.clearChat(_userUuid, _contactUuid);
+                if (mounted) {
+                  setState(() {
+                    _messages.clear();
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Chat cleared'),
+                      backgroundColor: Color(0xFFEA911D),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -759,5 +814,4 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
 }

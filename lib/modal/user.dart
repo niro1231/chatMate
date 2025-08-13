@@ -1,12 +1,12 @@
 class User {
-  int? id;
+  String uuid;
   String email;
   String name;
   String createdAt;
   String updatedAt;
 
   User({
-    this.id,
+    required this.uuid,
     required this.email,
     required this.name,
     required this.createdAt,
@@ -15,7 +15,7 @@ class User {
 
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{};
-    if (id != null) map['id'] = id;
+    map['uuid'] = uuid;
     map['email'] = email;
     map['name'] = name;
     map['createdAt'] = createdAt;
@@ -25,11 +25,11 @@ class User {
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
-      id: map['id'],
-      email: map['email'],
-      name: map['name'],
-      createdAt: map['createdAt'],
-      updatedAt: map['updatedAt'],
+      uuid: map['uuid'] as String? ?? '',
+      email: map['email'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      createdAt: map['createdAt'] as String? ?? '',
+      updatedAt: map['updatedAt'] as String? ?? '',
     );
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
 import 'chat_screen.dart';
+import 'package:chatme/modal/user.dart';
+import 'package:chatme/database/UserRepository.dart';
 
 class QRScanScreen extends StatefulWidget {
   QRScanScreen({super.key});
@@ -76,7 +78,7 @@ class _QRScanScreenState extends State<QRScanScreen> {
                             controller: MobileScannerController(
                               detectionSpeed: DetectionSpeed.noDuplicates
                             ),
-                            onDetect: (capture) {
+                            onDetect: (capture) async {
                               if (_isProcessing) return;
                               final barcodes = capture.barcodes;
                               if (barcodes.isEmpty) return;
@@ -89,20 +91,41 @@ class _QRScanScreenState extends State<QRScanScreen> {
                                 if(data.containsKey('email') && data['email'] is String) {
                                   _isProcessing = true;
 
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ChatScreen(chat: data),
-                                  ),
-                                ).then((_) {
-                                  // Reset processing flag when returning to scanner
-                                  _isProcessing = false;
-                                });
+                                  // Use the UUID from the QR code data for the new user
+                                  final scannedUserUuid = data['uuid'] as String?;
+                                  final scannedUserEmail = data['email'] as String;
+                                  final scannedUserName = data['name'] as String?;
+
+                                  if (scannedUserUuid != null && scannedUserName != null) {
+                                    final now = DateTime.now().toIso8601String();
+                                    final newUser = User(
+                                      uuid: scannedUserUuid, // Use the UUID from the scan
+                                      email: scannedUserEmail,
+                                      name: scannedUserName,
+                                      createdAt: now,
+                                      updatedAt: now,
+                                    );
+
+                                    final repo = Repository();
+                                    await repo.insertUser(newUser); // Save the user to the local database
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ChatScreen(chat: data),
+                                      ),
+                                    ).then((_) {
+                                      // Reset processing flag when returning to scanner
+                                      _isProcessing = false;
+                                    });
+                                  }
                                 } else {
                                     // Handle invalid QR format here if you want
+                                    if (!mounted) return;
+                                    _showInvalidQRCodeDialog();
                                 }
                               }  catch (e) {
                                 // Handle JSON parse error if needed
+                                if (!mounted) return;
                                 _showInvalidQRCodeDialog();
                               }                              
                             },
