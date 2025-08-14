@@ -4,6 +4,7 @@ import 'package:chatme/modal/user.dart';
 import 'package:chatme/modal/message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Repository {
   late DatabaseConnection _databaseConnection;
@@ -12,16 +13,49 @@ class Repository {
   }
 
   static Database? _database;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _databaseConnection.setDatabase();
     return _database!;
   }
-    final _messagesController = StreamController<List<Message>>.broadcast();
+  
+  final _messagesController = StreamController<List<Message>>.broadcast();
 
+  // New method to send messages to Firestore
+  Future<void> sendMessageToFirestore(Message message) async {
+    await _firestore.collection('messages').add(message.toMap());
+    print('✅ Message sent to Firestore: ${message.text}');
+  }
+
+  // Updated stream method to listen to both local and Firestore changes
   Stream<List<Message>> getMessagesStreamForChat(String userUuid, String contactUuid) {
-    _fetchAndSendMessages(userUuid, contactUuid); // Initial fetch
+    // 1. Listen for real-time changes from Firestore
+    _firestore
+        .collection('messages')
+        .where('senderUuid', whereIn: [userUuid, contactUuid])
+        .where('receiverUuid', whereIn: [userUuid, contactUuid])
+        .orderBy('timestamp') // Make sure this field exists in Firestore
+        .snapshots()
+        .listen((snapshot) async {
+      final newMessages = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Message.fromMap(data); // Use the fromMap factory
+      }).toList();
+
+      // 2. Process and update local database with new messages from Firestore
+      for (var message in newMessages) {
+        final db = await database;
+        await insertMessage(message); // Insert new messages locally
+      }
+
+      // 3. After syncing with Firestore, fetch and emit all messages from local DB
+      _fetchAndSendMessages(userUuid, contactUuid);
+    });
+
+    // Initial fetch to populate the stream immediately
+    _fetchAndSendMessages(userUuid, contactUuid);
     return _messagesController.stream;
   }
 
@@ -29,6 +63,7 @@ class Repository {
     final messages = await getMessagesForChat(userUuid, contactUuid);
     _messagesController.add(messages);
   }
+  
 
   Future<User?> getUserByEmail(String email) async {
     final db = await database;
