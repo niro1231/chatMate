@@ -1,6 +1,8 @@
 // Home Screen
 import 'package:flutter/material.dart';
 import 'chat_screen.dart';
+import '../database/UserRepository.dart';
+import 'dart:io';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -10,47 +12,98 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Map<String, dynamic>> chats = [
-    {
-      'name': 'John Doe',
-      'lastMessage': 'Hey, how are you doing?',
-      'time': '2:30 PM',
-      'unreadCount': 2,
-      'avatar': Icons.person,
-    },
-    {
-      'name': 'Sarah Wilson',
-      'lastMessage': 'Thanks for the help!',
-      'time': '1:15 PM',
-      'unreadCount': 0,
-      'avatar': Icons.person_2,
-    },
-    {
-      'name': 'Mike Johnson',
-      'lastMessage': 'See you tomorrow',
-      'time': '12:45 PM',
-      'unreadCount': 1,
-      'avatar': Icons.person_3,
-    },
-    {
-      'name': 'Emily Davis',
-      'lastMessage': 'Good morning!',
-      'time': '10:20 AM',
-      'unreadCount': 0,
-      'avatar': Icons.person_4,
-    },
-  ];
-
+  List<Map<String, dynamic>> chats = [];
+  List<Map<String, dynamic>> _filteredChats = [];
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _filteredChats = [];
+  final Repository _repository = Repository();
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _sortChatsByTime();
-    _filteredChats = List.from(chats);
+    _loadContactsFromDatabase();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _loadContactsFromDatabase() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Get current logged-in user
+      final currentUser = await _repository.getLoggedInUser();
+      if (currentUser == null) {
+        print('❌ No logged-in user found');
+        setState(() {
+          chats = [];
+          _filteredChats = [];
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Get all users except the current user
+      final contacts = await _repository.getAllUsersExceptCurrent(
+        currentUser.email,
+      );
+
+      // Convert users to chat format
+      final List<Map<String, dynamic>> contactChats = contacts.map((user) {
+        return {
+          'name': user.name,
+          'lastMessage':
+              user.about, // Using 'about' as placeholder for last message
+          'time': _formatTime(DateTime.parse(user.updatedAt)),
+          'unreadCount':
+              0, // Default to 0, can be updated with message logic later
+          'avatar': Icons.person,
+          'userId': user.uuid,
+          'email': user.email,
+          'profileImagePath': user.profileImagePath,
+        };
+      }).toList();
+
+      setState(() {
+        chats = contactChats;
+        _filteredChats = List.from(chats);
+        _isLoading = false;
+      });
+
+      print('✅ Loaded ${contacts.length} contacts from database');
+    } catch (e) {
+      print('❌ Error loading contacts: $e');
+      setState(() {
+        chats = [];
+        _filteredChats = [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final contactDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+
+    if (contactDate == today) {
+      // Same day, show time
+      final hour = dateTime.hour;
+      final minute = dateTime.minute.toString().padLeft(2, '0');
+      if (hour == 0) {
+        return '12:$minute AM';
+      } else if (hour < 12) {
+        return '$hour:$minute AM';
+      } else if (hour == 12) {
+        return '12:$minute PM';
+      } else {
+        return '${hour - 12}:$minute PM';
+      }
+    } else {
+      // Different day, show date
+      return '${dateTime.month}/${dateTime.day}';
+    }
   }
 
   void _onSearchChanged() {
@@ -65,8 +118,6 @@ class _HomeScreenState extends State<HomeScreen> {
           return name.contains(query) || lastMessage.contains(query);
         }).toList();
       }
-      _filteredChats.sort((a, b) =>
-          _parseChatTime(b['time']).compareTo(_parseChatTime(a['time'])));
     });
   }
 
@@ -75,29 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
       for (var chat in chats) {
         chat['unreadCount'] = 0;
       }
-      _sortChatsByTime();
       _filteredChats = List.from(chats);
     });
-  }
-
-  DateTime _parseChatTime(String timeStr) {
-    final now = DateTime.now();
-    final format = RegExp(r'(\d{1,2}):(\d{2})\s?(AM|PM)', caseSensitive: false);
-    final match = format.firstMatch(timeStr);
-    if (match != null) {
-      int hour = int.parse(match.group(1)!);
-      final int minute = int.parse(match.group(2)!);
-      final String meridiem = match.group(3)!.toUpperCase();
-      if (meridiem == 'PM' && hour != 12) hour += 12;
-      if (meridiem == 'AM' && hour == 12) hour = 0;
-      return DateTime(now.year, now.month, now.day, hour, minute);
-    }
-    return now;
-  }
-
-  void _sortChatsByTime() {
-    chats.sort(
-        (a, b) => _parseChatTime(b['time']).compareTo(_parseChatTime(a['time'])));
   }
 
   @override
@@ -153,11 +183,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
           actions: [
-
             IconButton(
               icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
               onPressed: () {
-                Navigator.pushNamed(context, '/qr-scan'); // Navigate to QR scan page
+                Navigator.pushNamed(
+                  context,
+                  '/qr-scan',
+                ); // Navigate to QR scan page
               },
             ),
 
@@ -206,8 +238,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: const [
                               Icon(Icons.settings, color: Colors.white),
                               SizedBox(width: 10),
-                              Text('Settings',
-                                  style: TextStyle(color: Colors.white)),
+                              Text(
+                                'Settings',
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ],
                           ),
                         ),
@@ -217,8 +251,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: const [
                               Icon(Icons.mark_email_read, color: Colors.white),
                               SizedBox(width: 10),
-                              Text('Read All',
-                                  style: TextStyle(color: Colors.white)),
+                              Text(
+                                'Read All',
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ],
                           ),
                         ),
@@ -228,8 +264,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: const [
                               Icon(Icons.logout, color: Colors.white),
                               SizedBox(width: 10),
-                              Text('Logout',
-                                  style: TextStyle(color: Colors.white)),
+                              Text(
+                                'Logout',
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ],
                           ),
                         ),
@@ -251,8 +289,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body: _buildChatsView(),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/plus');
+          onPressed: () async {
+            final result = await Navigator.pushNamed(context, '/plus');
+            // Refresh contacts when returning from add contact screen
+            if (result == true) {
+              _loadContactsFromDatabase();
+            }
           },
           backgroundColor: const Color(0xFFEA911D),
           child: const Icon(Icons.add, color: Colors.white, size: 28),
@@ -262,6 +304,35 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildChatsView() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEA911D)),
+        ),
+      );
+    }
+
+    if (_filteredChats.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 64, color: Colors.grey.shade600),
+            const SizedBox(height: 16),
+            Text(
+              'No contacts found',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add contacts to start chatting',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
       itemCount: _filteredChats.length,
       itemBuilder: (context, index) {
@@ -279,7 +350,12 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: CircleAvatar(
           radius: 28,
           backgroundColor: Colors.grey.shade600,
-          child: Icon(chat['avatar'], color: Colors.white, size: 30),
+          backgroundImage: chat['profileImagePath'] != null
+              ? FileImage(File(chat['profileImagePath']))
+              : null,
+          child: chat['profileImagePath'] == null
+              ? Icon(chat['avatar'], color: Colors.white, size: 30)
+              : null,
         ),
         title: Text(
           chat['name'],
@@ -330,12 +406,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () {
           setState(() {
             chat['unreadCount'] = 0;
-            final originalChatIndex =
-                chats.indexWhere((c) => c['name'] == chat['name']);
+            final originalChatIndex = chats.indexWhere(
+              (c) => c['userId'] == chat['userId'],
+            );
             if (originalChatIndex != -1) {
               chats[originalChatIndex]['unreadCount'] = 0;
             }
-            _sortChatsByTime();
             _filteredChats = List.from(chats);
           });
 
@@ -382,7 +458,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Logout', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );

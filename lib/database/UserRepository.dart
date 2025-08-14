@@ -241,4 +241,23 @@ class Repository {
       rethrow;
     }
   }
+
+  Future<List<User>> getAllUsersExceptCurrent(String currentUserEmail) async {
+    final db = await database;
+
+    // Ensure columns exist before querying
+    await _ensureAboutColumnExists();
+    await _ensureProfileImagePathColumnExists();
+
+    final result = await db.query(
+      'users',
+      where: 'email != ?',
+      whereArgs: [currentUserEmail],
+      orderBy: 'name ASC',
+    );
+
+    List<User> users = result.map((map) => User.fromMap(map)).toList();
+    print('✅ Found ${users.length} contacts excluding current user');
+    return users;
+  }
 }
