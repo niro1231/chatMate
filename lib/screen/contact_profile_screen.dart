@@ -76,7 +76,7 @@ class _ContactProfileScreenState extends State<ContactProfileScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ChatScreen(chat: contact),
+                                builder: (context) => ChatScreen(receiverId: contact['uuid']),
                               ),
                             );
                           },

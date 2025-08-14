@@ -39,7 +39,6 @@ class Repository {
     await db.insert('users', user.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
     print('✅ New user inserted: ${user.email}');
 
-
     // Print all users in the table for verification
     final allUsers = await db.query('users');
     print('📦 All users in database:');

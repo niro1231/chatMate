@@ -111,7 +111,7 @@ class _QRScanScreenState extends State<QRScanScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => ChatScreen(chat: data),
+                                        builder: (context) => ChatScreen(receiverId: data['uuid']),
                                       ),
                                     ).then((_) {
                                       // Reset processing flag when returning to scanner

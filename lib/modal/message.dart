@@ -1,18 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Message {
   int? id; // Changed from String uuid to int? id
   String senderUuid;
   String receiverUuid;
   String text;
-  String createdAt;
-  bool isRead;
+  Timestamp timestamp;
 
   Message({
     this.id, // ID is now optional for new messages
     required this.senderUuid,
     required this.receiverUuid,
     required this.text,
-    required this.createdAt,
-    this.isRead = false,
+    required this.timestamp,
   });
 
   Map<String, dynamic> toMap() {
@@ -20,8 +20,7 @@ class Message {
       'senderUuid': senderUuid,
       'receiverUuid': receiverUuid,
       'text': text,
-      'createdAt': createdAt,
-      'isRead': isRead ? 1 : 0,
+      'timestamp': timestamp,
     };
     // Only include the ID if it's present (i.e., for updates or when fetching from DB)
     if (id != null) {
@@ -36,8 +35,7 @@ class Message {
       senderUuid: map['senderUuid'],
       receiverUuid: map['receiverUuid'],
       text: map['text'],
-      createdAt: map['createdAt'],
-      isRead: map['isRead'] == 1,
+      timestamp: map['timestamp'],
     );
   }
 }

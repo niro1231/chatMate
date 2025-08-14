@@ -341,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ChatScreen(chat: chat)),
+            MaterialPageRoute(builder: (context) => ChatScreen(receiverId: chat['uuid'],)),
           );
         },
       ),
