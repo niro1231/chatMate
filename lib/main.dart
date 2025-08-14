@@ -14,7 +14,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
 import 'screen/contact_profile_screen.dart';
-import 'screen/change_number.dart';
+import 'screen/change_email.dart';
 import 'screen/wallpaper.dart';
 import 'screen/help.dart';
 import 'screen/plus.dart';
@@ -77,8 +77,8 @@ class ChatQRApp extends StatelessWidget {
         },
         '/qr-scan': (_) => QRScanScreen(),
         '/settings': (_) => SettingsScreen(),
-        
-        '/change-number': (_) => ChangeNumberScreen(),
+
+        '/change-email': (_) => ChangeEmailScreen(),
         '/wallpaper': (_) => ChatWallpaperScreen(),
         '/help': (_) => HelpScreen(),
         '/plus': (_) => ContactsScreen(),

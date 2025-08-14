@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/foundation.dart' as foundation;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chatme/database/MessageRepository.dart';
 import 'package:chatme/modal/user.dart';
 import 'package:chatme/modal/message.dart';
@@ -31,21 +32,23 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isBlocked = false;
   bool _showEmojiPicker = false;
   Timer? _realtimeTimer;
+  Color _backgroundColor = const Color(0xFF212121); // Default background color
 
   @override
   void initState() {
     super.initState();
     _loadChatData();
+    _loadBackgroundColor();
     _searchController.addListener(_onSearchChanged);
   }
 
   Future<void> _loadChatData() async {
     final User? loggedInUser = await _repo.getLoggedInUser();
-    
+
     if (loggedInUser != null) {
       _userUuid = loggedInUser.uuid;
       _contactUuid = widget.chat['uuid'] as String;
-      
+
       // Ensure the messages table is created
       await _repo.createMessageTable();
       await _loadMessages();
@@ -54,16 +57,29 @@ class _ChatScreenState extends State<ChatScreen> {
       // Handle the case where no user is logged in
       if (mounted) {
         // Pop back to a login screen or show an error
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not logged in')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('User not logged in')));
         Navigator.pop(context);
       }
     }
   }
 
+  Future<void> _loadBackgroundColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    final colorValue = prefs.getInt('chat_wallpaper_color');
+    if (colorValue != null && mounted) {
+      setState(() {
+        _backgroundColor = Color(colorValue);
+      });
+    }
+  }
+
   Future<void> _loadMessages() async {
-    final fetchedMessages = await _repo.getMessagesForChat(_userUuid, _contactUuid);
+    final fetchedMessages = await _repo.getMessagesForChat(
+      _userUuid,
+      _contactUuid,
+    );
     if (mounted) {
       setState(() {
         _messages = fetchedMessages;
@@ -79,7 +95,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final mockMessage = Message(
         senderUuid: _contactUuid,
         receiverUuid: _userUuid,
-        text: "This is a simulated message from ${_contactUuid.substring(0, 8)}!",
+        text:
+            "This is a simulated message from ${_contactUuid.substring(0, 8)}!",
         createdAt: DateTime.now().toIso8601String(),
         isRead: false,
       );
@@ -188,7 +205,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _scrollToBottom();
     }
   }
-  
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -203,7 +220,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   String _getCurrentTime(String dateTimeString) {
     final now = DateTime.parse(dateTimeString);
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final hour = now.hour > 12
+        ? now.hour - 12
+        : (now.hour == 0 ? 12 : now.hour);
     final minute = now.minute.toString().padLeft(2, '0');
     final period = now.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
@@ -221,7 +240,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF212121),
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
         backgroundColor: const Color(0xFF424242),
         elevation: 1,
@@ -306,7 +325,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildChatTitle() {
-    final name = widget.chat['name'] as String? ?? widget.chat['email'] ?? 'Unknown User';
+    final name =
+        widget.chat['name'] as String? ??
+        widget.chat['email'] ??
+        'Unknown User';
     final avatarIcon = widget.chat['avatar'] ?? Icons.person;
     return GestureDetector(
       onTap: () async {
@@ -390,6 +412,13 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           const PopupMenuItem(
+            value: 'wallpaper',
+            child: Text(
+              'Wallpaper',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ),
+          const PopupMenuItem(
             value: 'clear',
             child: Text(
               'Clear chat',
@@ -411,6 +440,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 });
               }
             }
+          } else if (value == 'wallpaper') {
+            final result = await Navigator.pushNamed(context, '/wallpaper');
+            if (result != null && result is Map<String, dynamic>) {
+              if (result['color'] != null) {
+                setState(() {
+                  _backgroundColor = result['color'] as Color;
+                });
+              }
+            }
           } else if (value == 'clear') {
             _showClearChatDialog();
           }
@@ -419,10 +457,7 @@ class _ChatScreenState extends State<ChatScreen> {
     ];
   }
 
-  Widget _buildMessageBubble(
-    Message message, [
-    bool isHighlighted = false,
-  ]) {
+  Widget _buildMessageBubble(Message message, [bool isHighlighted = false]) {
     final isMe = message.senderUuid == _userUuid;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -492,9 +527,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         const SizedBox(width: 4),
                         Icon(
                           message.isRead ? Icons.done_all : Icons.done,
-                          color: message.isRead
-                              ? Colors.blue
-                              : Colors.white70,
+                          color: message.isRead ? Colors.blue : Colors.white70,
                           size: 16,
                         ),
                       ],
@@ -741,8 +774,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showAddContactDialog() {
-    final name = widget.chat['name'] as String? ?? widget.chat['email'] ?? 'Unknown User';
-    
+    final name =
+        widget.chat['name'] as String? ??
+        widget.chat['email'] ??
+        'Unknown User';
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -762,7 +798,10 @@ class _ChatScreenState extends State<ChatScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
@@ -807,9 +846,9 @@ class _ChatScreenState extends State<ChatScreen> {
     return SizedBox(
       height: 256,
       child: EmojiPicker(
-            onEmojiSelected: (Category? category, Emoji emoji) {
-              _onEmojiSelected(emoji.emoji);
-            },
+        onEmojiSelected: (Category? category, Emoji emoji) {
+          _onEmojiSelected(emoji.emoji);
+        },
         textEditingController: _messageController,
       ),
     );

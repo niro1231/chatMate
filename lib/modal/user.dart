@@ -2,6 +2,8 @@ class User {
   String uuid;
   String email;
   String name;
+  String about;
+  String? profileImagePath;
   String createdAt;
   String updatedAt;
 
@@ -9,6 +11,8 @@ class User {
     required this.uuid,
     required this.email,
     required this.name,
+    this.about = "Available",
+    this.profileImagePath,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -18,6 +22,8 @@ class User {
     map['uuid'] = uuid;
     map['email'] = email;
     map['name'] = name;
+    map['about'] = about;
+    map['profileImagePath'] = profileImagePath;
     map['createdAt'] = createdAt;
     map['updatedAt'] = updatedAt;
     return map;
@@ -28,6 +34,8 @@ class User {
       uuid: map['uuid'] as String? ?? '',
       email: map['email'] as String? ?? '',
       name: map['name'] as String? ?? '',
+      about: map['about'] as String? ?? 'Available',
+      profileImagePath: map['profileImagePath'] as String?,
       createdAt: map['createdAt'] as String? ?? '',
       updatedAt: map['updatedAt'] as String? ?? '',
     );

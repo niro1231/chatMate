@@ -33,17 +33,17 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.sim_card_alert, color: Colors.white),
             title: const Text(
-              "Change Number",
+              "Change Email",
               style: TextStyle(color: Colors.white),
             ),
             subtitle: const Text(
-              "Change your registered number",
+              "Change your registered Email",
               style: TextStyle(color: Colors.grey),
             ),
             onTap: () {
               Navigator.pushNamed(
                 context,
-                '/change-number',
+                '/change-email',
               ); // ⬅️ Use named route here
             },
           ),
