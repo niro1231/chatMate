@@ -41,6 +41,17 @@ class DatabaseConnection {
         updatedAt TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        senderUuid TEXT,
+        receiverUuid TEXT,
+        text TEXT,
+        createdAt TEXT,
+        isRead INTEGER
+      )
+    ''');
     print("✅ users table created.");
   }
 

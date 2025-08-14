@@ -20,7 +20,7 @@ class Message {
       'senderUuid': senderUuid,
       'receiverUuid': receiverUuid,
       'text': text,
-      'timestamp': timestamp,
+      'createdAt': timestamp.toDate().toIso8601String()
     };
     // Only include the ID if it's present (i.e., for updates or when fetching from DB)
     if (id != null) {
@@ -35,7 +35,7 @@ class Message {
       senderUuid: map['senderUuid'],
       receiverUuid: map['receiverUuid'],
       text: map['text'],
-      timestamp: map['timestamp'],
+      timestamp: Timestamp.fromDate(DateTime.parse(map['createdAt'])),
     );
   }
 }

@@ -3,7 +3,7 @@ import 'package:chatme/database/db-helper.dart';
 import 'package:chatme/modal/user.dart';
 import 'package:chatme/modal/message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'dart:async';
 
 class Repository {
   late DatabaseConnection _databaseConnection;
@@ -18,33 +18,16 @@ class Repository {
     _database = await _databaseConnection.setDatabase();
     return _database!;
   }
-  
-  Future<void> createMessageTable() async {
-    final db = await database;
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        senderUuid TEXT,
-        receiverUuid TEXT,
-        text TEXT,
-        createdAt TEXT,
-        isRead INTEGER
-      )
-    ''');
+    final _messagesController = StreamController<List<Message>>.broadcast();
+
+  Stream<List<Message>> getMessagesStreamForChat(String userUuid, String contactUuid) {
+    _fetchAndSendMessages(userUuid, contactUuid); // Initial fetch
+    return _messagesController.stream;
   }
 
-  Future<void> insertUser(User user) async {
-    final db = await database;
-
-    await db.insert('users', user.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
-    print('✅ New user inserted: ${user.email}');
-
-    // Print all users in the table for verification
-    final allUsers = await db.query('users');
-    print('📦 All users in database:');
-    for (var u in allUsers) {
-      print(u);
-    }
+  Future<void> _fetchAndSendMessages(String userUuid, String contactUuid) async {
+    final messages = await getMessagesForChat(userUuid, contactUuid);
+    _messagesController.add(messages);
   }
 
   Future<User?> getUserByEmail(String email) async {
@@ -83,18 +66,6 @@ class Repository {
 
     print('⚠️ No user found with UUID: $uuid');
     return null;
-  }
-
-  Future<void> updateUser(User user) async {
-    final db = await database;
-
-    await db.update(
-      'users',
-      user.toMap(),
-      where: 'uuid = ?',
-      whereArgs: [user.uuid],
-    );
-    print('✅ User updated: ID=${user.uuid}, New Name=${user.name}');
   }
   
   Future<User?> getLoggedInUser() async {

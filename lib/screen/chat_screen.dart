@@ -77,7 +77,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
 
     await _repository.insertMessage(newMessage);
-    setState(() {}); // Trigger a rebuild to refresh messages
     _messageController.clear();
   }
 
@@ -94,8 +93,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
         final currentUserUuid = userSnapshot.data!.uuid;
 
-        return FutureBuilder<List<Message>>(
-          future: _repository.getMessagesForChat(currentUserUuid, widget.receiverId),
+        return StreamBuilder<List<Message>>(
+          stream: _repository.getMessagesStreamForChat(currentUserUuid, widget.receiverId),
           builder: (context, messagesSnapshot) {
             if (messagesSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
