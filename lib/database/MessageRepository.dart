@@ -32,9 +32,21 @@ class Repository {
   // Updated method to send messages to Firestore and trigger a UI update
   Future<void> sendMessageToFirestore(Message message) async {
     try {
+      print('🚀 Sending message to Firestore: ${message.text}');
+      print('📤 From: ${message.senderUuid} To: ${message.receiverUuid}');
+      print('🔑 Message ID will be: ${message.id}');
+      
+      // Save to local database first
+      await insertMessage(message);
+      print('💾 Message saved to local database');
+      
       // Use the specific Firestore map method
-      await _firestore.collection('messages').add(message.toFirestoreMap());
-      print('✅ Message sent to Firestore: ${message.text}');
+      final firestoreData = message.toFirestoreMap();
+      print('📦 Firestore data: $firestoreData');
+      
+      final docRef = await _firestore.collection('messages').add(firestoreData);
+      print('✅ Message sent to Firestore with doc ID: ${docRef.id}');
+      
       _updateAllUsersWithLastMessages(); // Trigger update after sending
     } catch (e) {
       print('❌ Error sending message to Firestore: $e');
@@ -80,17 +92,24 @@ class Repository {
   }
 
   Stream<List<Message>> getMessagesStreamForChat(String userUuid, String contactUuid) {
+    print('🔄 Setting up message stream for chat: $userUuid <-> $contactUuid');
+    
     // Create a unique key for this chat
     final chatKey = _getChatKey(userUuid, contactUuid);
+    print('🔑 Chat key: $chatKey');
     
     // Create or get existing controller for this specific chat
     if (!_chatControllers.containsKey(chatKey)) {
       _chatControllers[chatKey] = StreamController<List<Message>>.broadcast();
+      print('📺 Created new controller for chat: $chatKey');
+    } else {
+      print('♻️ Reusing existing controller for chat: $chatKey');
     }
     
     // Listen for messages in BOTH directions for real-time chat
     
-    // 1. Listen for messages FROM userUuid TO contactUuid
+    // 1. Listen for messages FROM userUuid TO contactUuid (outgoing messages)
+    print('📡 Setting up listener for outgoing messages: $userUuid -> $contactUuid');
     _firestore
         .collection('messages')
         .where('senderUuid', isEqualTo: userUuid)
@@ -98,11 +117,13 @@ class Repository {
         .orderBy('timestamp')
         .snapshots()
         .listen((snapshot) async {
+      print('📨 Outgoing messages snapshot received: ${snapshot.docs.length} docs');
       await _processFirestoreMessages(snapshot);
       _fetchAndSendMessages(userUuid, contactUuid);
     });
 
     // 2. Listen for messages FROM contactUuid TO userUuid (incoming messages)
+    print('📡 Setting up listener for incoming messages: $contactUuid -> $userUuid');
     _firestore
         .collection('messages')
         .where('senderUuid', isEqualTo: contactUuid)
@@ -110,6 +131,7 @@ class Repository {
         .orderBy('timestamp')
         .snapshots()
         .listen((snapshot) async {
+      print('📬 Incoming messages snapshot received: ${snapshot.docs.length} docs');
       await _processFirestoreMessages(snapshot);
       _fetchAndSendMessages(userUuid, contactUuid);
     });
@@ -127,44 +149,70 @@ class Repository {
 
   // Helper method to process Firestore messages
   Future<void> _processFirestoreMessages(QuerySnapshot snapshot) async {
+    print('🔍 Processing Firestore messages: ${snapshot.docs.length} docs');
+    
     final newMessages = snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
+      print('📄 Processing message doc ID: ${doc.id}, data: $data');
       return Message.fromMap(data);
     }).toList();
 
+    print('✅ Created ${newMessages.length} Message objects from Firestore');
+
     // Process and update local database with new messages from Firestore
     for (var message in newMessages) {
+      print('💾 Inserting message to local DB: ${message.text} (${message.senderUuid} -> ${message.receiverUuid})');
       await _insertMessageIfNotExists(message);
     }
   }
 
   // Helper method to avoid duplicate messages
   Future<void> _insertMessageIfNotExists(Message message) async {
-    final db = await database;
-    
-    // Check if message already exists to avoid duplicates
-    final existing = await db.query(
-      'messages',
-      where: 'senderUuid = ? AND receiverUuid = ? AND text = ? AND createdAt = ?',
-      whereArgs: [
-        message.senderUuid,
-        message.receiverUuid,
-        message.text,
-        message.timestamp.toDate().toIso8601String(),
-      ],
-      limit: 1,
-    );
-    
-    if (existing.isEmpty) {
-      await db.insert('messages', message.toMap());
-      print('✅ New message synced from Firestore: ${message.text}');
+    try {
+      final db = await database;
+      
+      // Check if message already exists to avoid duplicates
+      final existing = await db.query(
+        'messages',
+        where: 'senderUuid = ? AND receiverUuid = ? AND text = ? AND createdAt = ?',
+        whereArgs: [
+          message.senderUuid,
+          message.receiverUuid,
+          message.text,
+          message.timestamp.toDate().toIso8601String(),
+        ],
+        limit: 1,
+      );
+      
+      if (existing.isEmpty) {
+        await db.insert('messages', message.toMap());
+        print('✅ New message synced from Firestore: ${message.text}');
+      } else {
+        print('⏭️ Message already exists in local DB: ${message.text}');
+      }
+    } catch (e) {
+      print('❌ Error inserting message from Firestore: $e');
     }
   }
 
   Future<void> _fetchAndSendMessages(String userUuid, String contactUuid) async {
     final chatKey = _getChatKey(userUuid, contactUuid);
+    print('📊 Fetching messages for chat: $chatKey ($userUuid <-> $contactUuid)');
+    
     final messages = await getMessagesForChat(userUuid, contactUuid);
-    _chatControllers[chatKey]?.add(messages);
+    print('📨 Found ${messages.length} messages in local DB for chat');
+    
+    if (messages.isNotEmpty) {
+      print('💬 Latest message: ${messages.last.text} at ${messages.last.timestamp.toDate()}');
+    }
+    
+    final controller = _chatControllers[chatKey];
+    if (controller != null) {
+      controller.add(messages);
+      print('✅ Messages sent to stream controller for chat: $chatKey');
+    } else {
+      print('❌ No controller found for chat: $chatKey');
+    }
   }
   
   Future<User?> getUserByEmail(String email) async {
