@@ -19,14 +19,15 @@ class Repository {
   
   // New StreamController to emit the list of users with their last messages
   final _usersWithLastMessageController = StreamController<List<User>>.broadcast();
+  
+  // Map to store separate controllers for each chat
+  final Map<String, StreamController<List<Message>>> _chatControllers = {};
 
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _databaseConnection.setDatabase();
     return _database!;
   }
-  
-  final _messagesController = StreamController<List<Message>>.broadcast();
 
   // Updated method to send messages to Firestore and trigger a UI update
   Future<void> sendMessageToFirestore(Message message) async {
@@ -79,37 +80,91 @@ class Repository {
   }
 
   Stream<List<Message>> getMessagesStreamForChat(String userUuid, String contactUuid) {
-    // 1. Listen for real-time changes from Firestore
+    // Create a unique key for this chat
+    final chatKey = _getChatKey(userUuid, contactUuid);
+    
+    // Create or get existing controller for this specific chat
+    if (!_chatControllers.containsKey(chatKey)) {
+      _chatControllers[chatKey] = StreamController<List<Message>>.broadcast();
+    }
+    
+    // Listen for messages in BOTH directions for real-time chat
+    
+    // 1. Listen for messages FROM userUuid TO contactUuid
     _firestore
         .collection('messages')
         .where('senderUuid', isEqualTo: userUuid)
         .where('receiverUuid', isEqualTo: contactUuid)
-        .orderBy('timestamp') // Make sure this field exists in Firestore
+        .orderBy('timestamp')
         .snapshots()
         .listen((snapshot) async {
-      final newMessages = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return Message.fromMap(data); // Use the fromMap factory
-      }).toList();
+      await _processFirestoreMessages(snapshot);
+      _fetchAndSendMessages(userUuid, contactUuid);
+    });
 
-      // 2. Process and update local database with new messages from Firestore
-      for (var message in newMessages) {
-        final db = await database;
-        await insertMessage(message); // Insert new messages locally
-      }
-
-      // 3. After syncing with Firestore, fetch and emit all messages from local DB
+    // 2. Listen for messages FROM contactUuid TO userUuid (incoming messages)
+    _firestore
+        .collection('messages')
+        .where('senderUuid', isEqualTo: contactUuid)
+        .where('receiverUuid', isEqualTo: userUuid)
+        .orderBy('timestamp')
+        .snapshots()
+        .listen((snapshot) async {
+      await _processFirestoreMessages(snapshot);
       _fetchAndSendMessages(userUuid, contactUuid);
     });
 
     // Initial fetch to populate the stream immediately
     _fetchAndSendMessages(userUuid, contactUuid);
-    return _messagesController.stream;
+    return _chatControllers[chatKey]!.stream;
+  }
+
+  // Create consistent chat key regardless of user order
+  String _getChatKey(String userUuid, String contactUuid) {
+    final users = [userUuid, contactUuid]..sort();
+    return '${users[0]}_${users[1]}';
+  }
+
+  // Helper method to process Firestore messages
+  Future<void> _processFirestoreMessages(QuerySnapshot snapshot) async {
+    final newMessages = snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return Message.fromMap(data);
+    }).toList();
+
+    // Process and update local database with new messages from Firestore
+    for (var message in newMessages) {
+      await _insertMessageIfNotExists(message);
+    }
+  }
+
+  // Helper method to avoid duplicate messages
+  Future<void> _insertMessageIfNotExists(Message message) async {
+    final db = await database;
+    
+    // Check if message already exists to avoid duplicates
+    final existing = await db.query(
+      'messages',
+      where: 'senderUuid = ? AND receiverUuid = ? AND text = ? AND createdAt = ?',
+      whereArgs: [
+        message.senderUuid,
+        message.receiverUuid,
+        message.text,
+        message.timestamp.toDate().toIso8601String(),
+      ],
+      limit: 1,
+    );
+    
+    if (existing.isEmpty) {
+      await db.insert('messages', message.toMap());
+      print('✅ New message synced from Firestore: ${message.text}');
+    }
   }
 
   Future<void> _fetchAndSendMessages(String userUuid, String contactUuid) async {
+    final chatKey = _getChatKey(userUuid, contactUuid);
     final messages = await getMessagesForChat(userUuid, contactUuid);
-    _messagesController.add(messages);
+    _chatControllers[chatKey]?.add(messages);
   }
   
   Future<User?> getUserByEmail(String email) async {
