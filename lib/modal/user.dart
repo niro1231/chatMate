@@ -36,4 +36,10 @@ class User {
       updatedAt: map['updatedAt'] as String? ?? '',
     );
   }
+
+  // Method to update last message info
+  void updateLastMessage(String message, DateTime time) {
+    lastMessage = message;
+    timestamp = time;
+  }
 }

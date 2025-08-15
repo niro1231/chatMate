@@ -1,6 +1,6 @@
 import 'package:chatme/database/UserRepository.dart';
 import 'package:flutter/material.dart';
-import 'package:chatme/modal/user.dart'; 
+import 'package:chatme/modal/user.dart' as AppUser; 
 import 'package:uuid/uuid.dart';
 
 class NameScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class _NameScreenState extends State<NameScreen> {
 
       try {
         final now = DateTime.now().toIso8601String();
-        final user = User(
+        final user = AppUser.User(
           uuid: newUuid,
           email: widget.email,
           name: name,
@@ -30,6 +30,7 @@ class _NameScreenState extends State<NameScreen> {
           updatedAt: now,
         );
 
+        // Store user in local database (with name)
         final repo = Repository();
         await repo.insertUser(user); 
 
