@@ -1,6 +1,6 @@
 import 'package:chatme/database/UserRepository.dart';
 import 'package:flutter/material.dart';
-import 'package:chatme/modal/user.dart' as AppUser; 
+import 'package:chatme/modal/user.dart'; 
 import 'package:uuid/uuid.dart';
 
 class NameScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class _NameScreenState extends State<NameScreen> {
 
       try {
         final now = DateTime.now().toIso8601String();
-        final user = AppUser.User(
+        final user = User(
           uuid: newUuid,
           email: widget.email,
           name: name,
@@ -30,13 +30,29 @@ class _NameScreenState extends State<NameScreen> {
           updatedAt: now,
         );
 
-        // Store user in local database (with name)
         final repo = Repository();
+        
+        // Create user both locally and in Firestore
         await repo.insertUser(user); 
 
+        // Set as logged in user
         await repo.setLoggedIn(user.email);
 
+        // Sync other users from Firestore to local database
+        await repo.syncUsersFromFirestore();
+
         if (!mounted) return;
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created successfully!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        
+        // Navigate to home
         Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(

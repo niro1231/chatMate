@@ -37,7 +37,7 @@ class User {
     );
   }
 
-  // Method to update last message info
+  // Method to update last message info (used by MessageRepository)
   void updateLastMessage(String message, DateTime time) {
     lastMessage = message;
     timestamp = time;

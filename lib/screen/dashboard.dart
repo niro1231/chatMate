@@ -22,8 +22,10 @@ class _DashboardState extends State<Dashboard> {
         final repo = Repository();
         final existingUser = await repo.getUserByEmail(email);
         if (existingUser != null) {
-          // If user already exists, skip OTP and go to home
+          // If user already exists, sync users and go to home
           await repo.setLoggedIn(email);
+          await repo.syncUsersFromFirestore(); // Sync other users
+          
           if (!mounted) return;
           Navigator.pushReplacementNamed(context, '/home');
         } else {
