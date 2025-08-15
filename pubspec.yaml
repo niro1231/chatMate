@@ -46,6 +46,8 @@ dependencies:
   pretty_qr_code: ^3.3.0
   shared_preferences: ^2.0.15
   emoji_picker_flutter: ^4.3.0
+  stream_transform: ^2.1.0
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:

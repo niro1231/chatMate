@@ -6,6 +6,7 @@ class Message {
   String receiverUuid;
   String text;
   Timestamp timestamp;
+  String? receiverName; 
 
   Message({
     this.id, // ID is now optional for new messages
@@ -13,6 +14,7 @@ class Message {
     required this.receiverUuid,
     required this.text,
     required this.timestamp,
+    this.receiverName,
   });
 
   Map<String, dynamic> toMap() {
@@ -31,11 +33,12 @@ class Message {
 
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
-      id: map['id'] as int, // Parse the ID as an integer
+      id: map['id'] as int?, // Parse the ID as an integer
       senderUuid: map['senderUuid'],
       receiverUuid: map['receiverUuid'],
       text: map['text'],
       timestamp: Timestamp.fromDate(DateTime.parse(map['createdAt'])),
+      receiverName: null, 
     );
   }
 }

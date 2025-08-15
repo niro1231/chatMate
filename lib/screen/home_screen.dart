@@ -1,6 +1,10 @@
-// Home Screen
+// lib/screen/home_screen.dart
+
 import 'package:flutter/material.dart';
-import 'chat_screen.dart';
+import 'package:chatme/screen/chat_screen.dart';
+import 'package:chatme/database/messagerepository.dart';
+import 'package:chatme/modal/user.dart';
+import 'package:intl/intl.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -10,96 +14,38 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Map<String, dynamic>> chats = [
-    {
-      'name': 'John Doe',
-      'lastMessage': 'Hey, how are you doing?',
-      'time': '2:30 PM',
-      'unreadCount': 2,
-      'avatar': Icons.person,
-    },
-    {
-      'name': 'Sarah Wilson',
-      'lastMessage': 'Thanks for the help!',
-      'time': '1:15 PM',
-      'unreadCount': 0,
-      'avatar': Icons.person_2,
-    },
-    {
-      'name': 'Mike Johnson',
-      'lastMessage': 'See you tomorrow',
-      'time': '12:45 PM',
-      'unreadCount': 1,
-      'avatar': Icons.person_3,
-    },
-    {
-      'name': 'Emily Davis',
-      'lastMessage': 'Good morning!',
-      'time': '10:20 AM',
-      'unreadCount': 0,
-      'avatar': Icons.person_4,
-    },
-  ];
+  final Repository _repository = Repository();
+  late Stream<List<User>> _usersStream;
 
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _filteredChats = [];
+  List<User> _filteredUsers = [];
 
   @override
   void initState() {
     super.initState();
-    _sortChatsByTime();
-    _filteredChats = List.from(chats);
+    _usersStream = _repository.getUsersWithLastMessagesStream();
     _searchController.addListener(_onSearchChanged);
   }
 
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase().trim();
-    setState(() {
-      if (query.isEmpty) {
-        _filteredChats = List.from(chats);
-      } else {
-        _filteredChats = chats.where((chat) {
-          final name = chat['name'].toString().toLowerCase();
-          final lastMessage = chat['lastMessage'].toString().toLowerCase();
-          return name.contains(query) || lastMessage.contains(query);
-        }).toList();
-      }
-      _filteredChats.sort((a, b) =>
-          _parseChatTime(b['time']).compareTo(_parseChatTime(a['time'])));
+    
+    _usersStream.first.then((allUsers) {
+      setState(() {
+        if (query.isEmpty) {
+          _filteredUsers = List.from(allUsers);
+        } else {
+          _filteredUsers = allUsers.where((user) {
+            final name = user.name.toLowerCase();
+            final lastMessage = user.lastMessage?.toLowerCase() ?? '';
+            return name.contains(query) || lastMessage.contains(query);
+          }).toList();
+        }
+      });
     });
   }
-
-  void _markAllAsRead() {
-    setState(() {
-      for (var chat in chats) {
-        chat['unreadCount'] = 0;
-      }
-      _sortChatsByTime();
-      _filteredChats = List.from(chats);
-    });
-  }
-
-  DateTime _parseChatTime(String timeStr) {
-    final now = DateTime.now();
-    final format = RegExp(r'(\d{1,2}):(\d{2})\s?(AM|PM)', caseSensitive: false);
-    final match = format.firstMatch(timeStr);
-    if (match != null) {
-      int hour = int.parse(match.group(1)!);
-      final int minute = int.parse(match.group(2)!);
-      final String meridiem = match.group(3)!.toUpperCase();
-      if (meridiem == 'PM' && hour != 12) hour += 12;
-      if (meridiem == 'AM' && hour == 12) hour = 0;
-      return DateTime(now.year, now.month, now.day, hour, minute);
-    }
-    return now;
-  }
-
-  void _sortChatsByTime() {
-    chats.sort(
-        (a, b) => _parseChatTime(b['time']).compareTo(_parseChatTime(a['time'])));
-  }
-
+  
   @override
   void dispose() {
     _searchController.dispose();
@@ -132,13 +78,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (_searchController.text.isEmpty) {
                           setState(() {
                             _isSearching = false;
-                            _filteredChats = List.from(chats);
+                            _onSearchChanged(); 
                           });
                         } else {
                           _searchController.clear();
-                          setState(() {
-                            _filteredChats = List.from(chats);
-                          });
                         }
                       },
                     ),
@@ -153,21 +96,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
           actions: [
-
             IconButton(
               icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
               onPressed: () {
-                Navigator.pushNamed(context, '/qr-scan'); // Navigate to QR scan page
+                Navigator.pushNamed(context, '/qr-scan');
               },
             ),
-
             IconButton(
               onPressed: () {
                 setState(() {
                   _isSearching = true;
-                  if (_searchController.text.isEmpty) {
-                    _filteredChats = List.from(chats);
-                  }
+                  _onSearchChanged();
                 });
               },
               icon: const Icon(Icons.search, color: Colors.white),
@@ -186,7 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       Offset.zero,
                       ancestor: overlay,
                     );
-
                     final result = await showMenu<String>(
                       context: context,
                       position: RelativeRect.fromLTRB(
@@ -212,17 +150,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         PopupMenuItem<String>(
-                          value: 'read_all',
-                          child: Row(
-                            children: const [
-                              Icon(Icons.mark_email_read, color: Colors.white),
-                              SizedBox(width: 10),
-                              Text('Read All',
-                                  style: TextStyle(color: Colors.white)),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
                           value: 'logout',
                           child: Row(
                             children: const [
@@ -235,11 +162,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     );
-
                     if (result == 'settings') {
                       Navigator.pushNamed(context, '/settings');
-                    } else if (result == 'read_all') {
-                      _markAllAsRead();
                     } else if (result == 'logout') {
                       _showLogoutDialog();
                     }
@@ -262,16 +186,37 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildChatsView() {
-    return ListView.builder(
-      itemCount: _filteredChats.length,
-      itemBuilder: (context, index) {
-        final chat = _filteredChats[index];
-        return _buildChatTile(chat);
+    return StreamBuilder<List<User>>(
+      stream: _usersStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}', style: TextStyle(color: Colors.white)));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(
+            child: Text(
+              'No chats yet.',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          );
+        } else {
+          final users = snapshot.data!;
+          final displayedUsers = _searchController.text.isEmpty ? users : _filteredUsers;
+          
+          return ListView.builder(
+            itemCount: displayedUsers.length,
+            itemBuilder: (context, index) {
+              final user = displayedUsers[index];
+              return _buildChatTile(user);
+            },
+          );
+        }
       },
     );
   }
 
-  Widget _buildChatTile(Map<String, dynamic> chat) {
+  Widget _buildChatTile(User user) {
     return Container(
       color: Colors.grey.shade900,
       child: ListTile(
@@ -279,10 +224,13 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: CircleAvatar(
           radius: 28,
           backgroundColor: Colors.grey.shade600,
-          child: Icon(chat['avatar'], color: Colors.white, size: 30),
+          child: Text(
+            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+            style: const TextStyle(color: Colors.white, fontSize: 24),
+          ),
         ),
         title: Text(
-          chat['name'],
+          user.name,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
@@ -290,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         subtitle: Text(
-          chat['lastMessage'],
+          user.lastMessage ?? 'Start a conversation...',
           style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -300,52 +248,38 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              chat['time'],
+              user.timestamp != null ? _formatTime(user.timestamp!) : '',
               style: TextStyle(
-                color: chat['unreadCount'] > 0
-                    ? const Color(0xFFEA911D)
-                    : Colors.grey.shade500,
+                color: Colors.grey.shade500,
                 fontSize: 12,
               ),
             ),
-            if (chat['unreadCount'] > 0)
-              Container(
-                margin: const EdgeInsets.only(top: 6),
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEA911D),
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  chat['unreadCount'].toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
           ],
         ),
         onTap: () {
-          setState(() {
-            chat['unreadCount'] = 0;
-            final originalChatIndex =
-                chats.indexWhere((c) => c['name'] == chat['name']);
-            if (originalChatIndex != -1) {
-              chats[originalChatIndex]['unreadCount'] = 0;
-            }
-            _sortChatsByTime();
-            _filteredChats = List.from(chats);
-          });
-
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ChatScreen(receiverId: chat['uuid'],)),
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(receiverId: user.uuid!),
+            ),
           );
         },
       ),
     );
+  }
+
+  String _formatTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+
+    if (timestamp.day == today.day && timestamp.month == today.month && timestamp.year == today.year) {
+      return DateFormat.jm().format(timestamp);
+    } else if (timestamp.day == yesterday.day && timestamp.month == yesterday.month && timestamp.year == yesterday.year) {
+      return 'Yesterday';
+    } else {
+      return DateFormat('dd/MM/yy').format(timestamp);
+    }
   }
 
   void _showLogoutDialog() {
@@ -369,6 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ElevatedButton(
               onPressed: () {
+                _repository.logout();
                 Navigator.pop(context);
                 Navigator.pushNamedAndRemoveUntil(
                   context,

@@ -4,6 +4,8 @@ class User {
   String name;
   String createdAt;
   String updatedAt;
+  String? lastMessage; // Add this line
+  DateTime? timestamp;
 
   User({
     required this.uuid,
@@ -11,6 +13,8 @@ class User {
     required this.name,
     required this.createdAt,
     required this.updatedAt,
+    this.lastMessage, // Add this line
+    this.timestamp,
   });
 
   Map<String, dynamic> toMap() {

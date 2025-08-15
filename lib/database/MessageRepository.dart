@@ -1,3 +1,4 @@
+// repository.dart
 import 'package:sqflite/sqflite.dart';
 import 'package:chatme/database/db-helper.dart';
 import 'package:chatme/modal/user.dart';
@@ -5,6 +6,7 @@ import 'package:chatme/modal/message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:stream_transform/stream_transform.dart';
 
 class Repository {
   late DatabaseConnection _databaseConnection;
@@ -14,6 +16,9 @@ class Repository {
 
   static Database? _database;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // New StreamController to emit the list of users with their last messages
+  final _usersWithLastMessageController = StreamController<List<User>>.broadcast();
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -23,19 +28,56 @@ class Repository {
   
   final _messagesController = StreamController<List<Message>>.broadcast();
 
-  // New method to send messages to Firestore
+  // Updated method to send messages to Firestore and trigger a UI update
   Future<void> sendMessageToFirestore(Message message) async {
     await _firestore.collection('messages').add(message.toMap());
     print('✅ Message sent to Firestore: ${message.text}');
+    _updateAllUsersWithLastMessages(); // Trigger update after sending
   }
 
-  // Updated stream method to listen to both local and Firestore changes
+  // A stream of all users with their latest messages, for the home screen
+  Stream<List<User>> getUsersWithLastMessagesStream() {
+    _firestore
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+          _updateAllUsersWithLastMessages();
+        });
+    _updateAllUsersWithLastMessages(); // Initial fetch
+    return _usersWithLastMessageController.stream;
+  }
+  
+  // Method to fetch all users and their last messages from local database
+  Future<void> _updateAllUsersWithLastMessages() async {
+    final currentUser = await getLoggedInUser();
+    if (currentUser == null) {
+      _usersWithLastMessageController.add([]);
+      return;
+    }
+
+    final db = await database;
+    final List<Map<String, dynamic>> userMaps = await db.query('users', where: 'uuid != ?', whereArgs: [currentUser.uuid]);
+    final List<User> users = userMaps.map((userMap) => User.fromMap(userMap)).toList();
+    
+    for (var user in users) {
+      final lastMessage = await getLastMessageWithUser(user.uuid!);
+      if (lastMessage != null) {
+        user.lastMessage = lastMessage.text;
+        user.timestamp = lastMessage.timestamp.toDate();
+      }
+    }
+    
+    users.sort((a, b) => (b.timestamp ?? DateTime(0)).compareTo(a.timestamp ?? DateTime(0)));
+    _usersWithLastMessageController.add(users);
+  }
+
   Stream<List<Message>> getMessagesStreamForChat(String userUuid, String contactUuid) {
     // 1. Listen for real-time changes from Firestore
     _firestore
         .collection('messages')
-        .where('senderUuid', whereIn: [userUuid, contactUuid])
-        .where('receiverUuid', whereIn: [userUuid, contactUuid])
+        .where('senderUuid', isEqualTo: userUuid)
+        .where('receiverUuid', isEqualTo: contactUuid)
         .orderBy('timestamp') // Make sure this field exists in Firestore
         .snapshots()
         .listen((snapshot) async {
@@ -64,7 +106,6 @@ class Repository {
     _messagesController.add(messages);
   }
   
-
   Future<User?> getUserByEmail(String email) async {
     final db = await database;
 
@@ -152,4 +193,24 @@ class Repository {
       whereArgs: [userUuid, contactUuid, contactUuid, userUuid],
     );
   }
+
+
+  Future<Message?> getLastMessageWithUser(String otherUserUuid) async {
+    final currentUser = await getLoggedInUser();
+    if (currentUser == null) return null;
+
+    final db = await database;
+    final result = await db.query(
+      'messages',
+      where: '(senderUuid = ? AND receiverUuid = ?) OR (senderUuid = ? AND receiverUuid = ?)',
+      whereArgs: [currentUser.uuid, otherUserUuid, otherUserUuid, currentUser.uuid],
+      orderBy: 'createdAt DESC',
+      limit: 1,
+    );
+    if (result.isNotEmpty) {
+      return Message.fromMap(result.first);
+    }
+    return null;
+  }
+
 }
