@@ -30,9 +30,15 @@ class Repository {
 
   // Updated method to send messages to Firestore and trigger a UI update
   Future<void> sendMessageToFirestore(Message message) async {
-    await _firestore.collection('messages').add(message.toMap());
-    print('✅ Message sent to Firestore: ${message.text}');
-    _updateAllUsersWithLastMessages(); // Trigger update after sending
+    try {
+      // Use the specific Firestore map method
+      await _firestore.collection('messages').add(message.toFirestoreMap());
+      print('✅ Message sent to Firestore: ${message.text}');
+      _updateAllUsersWithLastMessages(); // Trigger update after sending
+    } catch (e) {
+      print('❌ Error sending message to Firestore: $e');
+      rethrow; // Re-throw to let caller handle the error
+    }
   }
 
   // A stream of all users with their latest messages, for the home screen
