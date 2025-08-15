@@ -6,7 +6,6 @@ import 'package:chatme/modal/message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:stream_transform/stream_transform.dart';
 
 class Repository {
   late DatabaseConnection _databaseConnection;
@@ -61,7 +60,7 @@ class Repository {
     final List<User> users = userMaps.map((userMap) => User.fromMap(userMap)).toList();
     
     for (var user in users) {
-      final lastMessage = await getLastMessageWithUser(user.uuid!);
+      final lastMessage = await getLastMessageWithUser(user.uuid);
       if (lastMessage != null) {
         user.lastMessage = lastMessage.text;
         user.timestamp = lastMessage.createdAt;
@@ -88,7 +87,6 @@ class Repository {
 
       // 2. Process and update local database with new messages from Firestore
       for (var message in newMessages) {
-        final db = await database;
         await insertMessage(message); // Insert new messages locally
       }
 

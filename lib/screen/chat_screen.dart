@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:chatme/modal/message.dart';
 import 'package:chatme/modal/user.dart';
 import 'package:chatme/database/MessageRepository.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatScreen extends StatefulWidget {
   final String receiverId;
@@ -45,7 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
       senderUuid: _currentUser!.uuid,
       receiverUuid: widget.receiverId,
       text: messageText,
-      timestamp: Timestamp.now(),
+      createdAt: DateTime.now(), // Changed from timestamp to createdAt
     );
 
     // 1. Send to Firestore for real-time sync with other user

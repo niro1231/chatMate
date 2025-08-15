@@ -20,13 +20,13 @@ class ChatService {
   // send msg
   Future<void> sendMessage(String receiverUuid, String text) async {
     final String currentUserId = _auth.currentUser!.uid;
-    final Timestamp timestamp = Timestamp.now();
+    final DateTime now = DateTime.now();
 
     Message newMessage = Message(
       senderUuid: currentUserId,
       receiverUuid: receiverUuid,
       text: text,
-      timestamp: timestamp,
+      createdAt: now, // Changed from timestamp to createdAt
     );
 
     List<String> ids = [currentUserId, receiverUuid];
